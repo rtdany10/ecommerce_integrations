@@ -378,6 +378,7 @@ def upload_erpnext_item(doc, method=None):
 				sku=template_item.item_code,
 				price=template_item.get(ITEM_SELLING_RATE_FIELD),
 				is_stock_item=template_item.is_stock_item,
+				barcode=item.barcodes[0].barcode if item.barcodes else "",
 			)
 			if item.variant_of:
 				product.options = []
@@ -386,6 +387,7 @@ def upload_erpnext_item(doc, method=None):
 					"title": template_item.item_name,
 					"sku": item.item_code,
 					"price": item.get(ITEM_SELLING_RATE_FIELD),
+					"barcode": item.barcodes[0].barcode if item.barcodes else "",
 				}
 				max_index_range = min(3, len(template_item.attributes))
 				for i in range(0, max_index_range):
@@ -429,10 +431,17 @@ def upload_erpnext_item(doc, method=None):
 			map_erpnext_item_to_shopify(shopify_product=product, erpnext_item=template_item)
 			if not item.variant_of:
 				update_default_variant_properties(
-					product, is_stock_item=template_item.is_stock_item, price=item.get(ITEM_SELLING_RATE_FIELD)
+					product,
+					is_stock_item=template_item.is_stock_item,
+					price=item.get(ITEM_SELLING_RATE_FIELD),
+					barcode=item.barcodes[0].barcode if item.barcodes else "",
 				)
 			else:
-				variant_attributes = {"sku": item.item_code, "price": item.get(ITEM_SELLING_RATE_FIELD)}
+				variant_attributes = {
+					"sku": item.item_code,
+					"price": item.get(ITEM_SELLING_RATE_FIELD),
+					"barcode": item.barcodes[0].barcode if item.barcodes else "",
+				}
 				product.options = []
 				max_index_range = min(3, len(template_item.attributes))
 				for i in range(0, max_index_range):
@@ -451,6 +460,7 @@ def upload_erpnext_item(doc, method=None):
 						frappe.throw(_("Shopify Error: Missing value for attribute {}").format(attr.attribute))
 				product.variants.append(Variant(variant_attributes))
 
+			# frappe.throw(str(product))
 			is_successful = product.save()
 			if is_successful and item.variant_of:
 				map_erpnext_variant_to_shopify_variant(product, item, variant_attributes)
@@ -522,6 +532,7 @@ def update_default_variant_properties(
 	is_stock_item: bool,
 	sku: Optional[str] = None,
 	price: Optional[float] = None,
+	barcode: Optional[str] = None,
 ):
 	"""Shopify creates default variant upon saving the product.
 
@@ -538,6 +549,8 @@ def update_default_variant_properties(
 		default_variant.price = price
 	if sku is not None:
 		default_variant.sku = sku
+	if barcode is not None:
+		default_variant.barcode = barcode
 
 
 def write_upload_log(status: bool, product: Product, item, action="Created") -> None:
