@@ -90,6 +90,39 @@ def get_fulfillment_items(dn_items, fulfillment_items, location_id=None):
 	]
 
 
+def update_fulfillment_status(payload, request_id=None):
+	frappe.set_user("Administrator")
+	frappe.flags.request_id = request_id
+	fulfillment = payload
+
+	delivery_note = frappe.db.get_value(
+		"Delivery Note", {FULLFILLMENT_ID_FIELD: cstr(fulfillment["id"]), "docstatus": 1}, "name"
+	)
+	if not delivery_note:
+		return
+
+	try:
+		if cstr(fulfillment["status"]) == "cancelled":
+			frappe.get_doc("Delivery Note", delivery_note).cancel()
+		create_shopify_log(status="Success")
+	except Exception as e:
+		create_shopify_log(status="Error", exception=e, rollback=True)
+		frappe.get_doc(
+			{
+				"doctype": "Comment",
+				"comment_type": "Comment",
+				"reference_doctype": "Delivery Note",
+				"reference_name": delivery_note,
+				"content": frappe._(
+					"""
+					This delivery note has been cancelled on Shopify.
+					Could not cancel on ERPNext, check integration logs for more info.
+					"""
+				),
+			}
+		).insert(ignore_permissions=True)
+
+
 def get_dn_taxes(fulfillment, setting):
 	taxes = []
 	line_items = fulfillment.get("line_items")
