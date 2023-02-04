@@ -122,7 +122,17 @@ def _map_address_fields(shopify_address, customer_name, address_type, email):
 		"pincode": shopify_address.get("zip"),
 		"country": shopify_address.get("country"),
 		"email_id": email,
+		"gstin": shopify_address.get("company"),
 	}
+
+	if address_fields["gstin"]:
+		try:
+			from india_compliance.gst_india.utils import validate_gstin
+
+			address_fields["gstin"] = validate_gstin(address_fields["gstin"])
+			address_fields["gst_category"] = "Registered Regular"
+		except Exception:
+			address_fields.pop("gstin")
 
 	phone = shopify_address.get("phone")
 	if validate_phone_number(phone, throw=False):
