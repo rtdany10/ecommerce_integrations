@@ -223,7 +223,7 @@ def get_order_taxes(shopify_order, setting, items):
 	taxes = []
 	for account, tax_row in tax_account_wise_data.items():
 		row = {"account_head": account, **tax_row}
-		row["item_wise_tax_detail"] = json.dumps(row["item_wise_tax_detail"])
+		row["item_wise_tax_detail"] = json.dumps(row.get("item_wise_tax_detail", {}))
 		taxes.append(row)
 
 	return taxes
@@ -283,15 +283,15 @@ def update_taxes_with_shipping_lines(tax_account_wise_data, shipping_lines, sett
 				if tax_account_wise_data.get(account_head):
 					tax_account_wise_data[account_head]["tax_amount"] += shipping_charge_amount
 				else:
-					tax_account_wise_data.update(
-						{
+					tax_account_wise_data.update({
+						account_head: {
 							"charge_type": "Actual",
 							"account_head": account_head,
 							"description": get_tax_account_description(shipping_charge) or shipping_charge["title"],
 							"tax_amount": shipping_charge_amount,
 							"cost_center": setting.cost_center,
 						}
-					)
+					})
 
 		for tax in shipping_charge.get("tax_lines"):
 			account_head = get_tax_account_head(tax)
@@ -302,8 +302,8 @@ def update_taxes_with_shipping_lines(tax_account_wise_data, shipping_lines, sett
 						setting.shipping_item: [flt(tax.get("rate")) * 100, flt(tax.get("price"))]
 					})
 			else:
-				tax_account_wise_data.update(
-					{
+				tax_account_wise_data.update({
+					account_head: {
 						"charge_type": "Actual",
 						"account_head": account_head,
 						"description": (
@@ -312,7 +312,7 @@ def update_taxes_with_shipping_lines(tax_account_wise_data, shipping_lines, sett
 						"tax_amount": tax["price"],
 						"cost_center": setting.cost_center,
 					}
-				)
+				})
 
 
 def get_sales_order(order_id):
