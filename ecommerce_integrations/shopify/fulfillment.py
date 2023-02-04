@@ -11,6 +11,7 @@ from ecommerce_integrations.shopify.constants import (
 	SETTING_DOCTYPE,
 )
 from ecommerce_integrations.shopify.order import (
+	_get_item_price,
 	get_sales_order,
 	get_tax_account_description,
 	get_tax_account_head,
@@ -61,7 +62,7 @@ def create_delivery_note(shopify_order, setting, so):
 			)
 			dn.flags.ignore_mandatory = True
 			dn.taxes = []
-			for tax in get_dn_taxes(fulfillment, setting):
+			for tax in get_dn_taxes(fulfillment, setting, shopify_order.get("taxes_included")):
 				dn.append("taxes", tax)
 			dn.save().submit()
 
@@ -122,7 +123,7 @@ def update_fulfillment_status(payload, request_id=None):
 		).insert(ignore_permissions=True)
 
 
-def get_dn_taxes(fulfillment, setting):
+def get_dn_taxes(fulfillment, setting, tax_inclusive=False):
 	tax_account_wise_data = {}
 	line_items = fulfillment.get("line_items")
 
@@ -143,9 +144,10 @@ def get_dn_taxes(fulfillment, setting):
 					"item_wise_tax_detail": {}
 				}
 			)
+			
 			tax_amt = (
-				flt(tax.get("rate", 0)) * flt(line_item.get("quantity", 0)) * flt(line_item.get("price", 0))
-			)
+				flt(line_item.get("quantity")) * _get_item_price(line_item, tax_inclusive)
+			) * flt(tax.get("rate"))
 
 			tax_account_wise_data[account_head]["tax_amount"] += flt(tax_amt)
 			tax_account_wise_data[account_head]["item_wise_tax_detail"].update({
