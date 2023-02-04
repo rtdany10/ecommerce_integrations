@@ -34,6 +34,8 @@
   "sync_sales_invoice_on_payment",
   "sync_invoice_on_delivery",
   "sync_invoice_on_order",
+  "add_shipping_as_item",
+  "shipping_item",
   "section_break_22",
   "html_16",
   "taxes",
@@ -361,12 +363,26 @@
    "fieldname": "sync_invoice_on_order",
    "fieldtype": "Check",
    "label": "Import Sales Invoice from Shopify on Order creation"
+  },
+  {
+   "default": "0",
+   "fieldname": "add_shipping_as_item",
+   "fieldtype": "Check",
+   "label": "Add Shipping Charge as an Item in Order"
+  },
+  {
+   "depends_on": "add_shipping_as_item",
+   "fieldname": "shipping_item",
+   "fieldtype": "Link",
+   "label": "Shipping Item",
+   "mandatory_depends_on": "add_shipping_as_item",
+   "options": "Item"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-02-01 15:07:02.735741",
+ "modified": "2023-02-04 10:49:54.505826",
  "modified_by": "Administrator",
  "module": "shopify",
  "name": "Shopify Setting",

@@ -59,12 +59,11 @@ def create_delivery_note(shopify_order, setting, so):
 			dn.items = get_fulfillment_items(
 				dn.items, fulfillment.get("line_items"), fulfillment.get("location_id")
 			)
+			dn.flags.ignore_mandatory = True
 			dn.taxes = []
 			for tax in get_dn_taxes(fulfillment, setting):
 				dn.append("taxes", tax)
-			dn.flags.ignore_mandatory = True
-			dn.save()
-			dn.submit()
+			dn.save().submit()
 
 			if shopify_order.get("note"):
 				dn.add_comment(text=f"Order Note: {shopify_order.get('note')}")
@@ -124,28 +123,39 @@ def update_fulfillment_status(payload, request_id=None):
 
 
 def get_dn_taxes(fulfillment, setting):
-	taxes = []
+	tax_account_wise_data = {}
 	line_items = fulfillment.get("line_items")
 
 	for line_item in line_items:
 		item_code = get_item_code(line_item)
 		for tax in line_item.get("tax_lines"):
+			account_head = get_tax_account_head(tax)
+			tax_account_wise_data.setdefault(
+				account_head, {
+					"charge_type": "Actual",
+					"description": (
+						f"{get_tax_account_description(tax) or tax.get('title')}"
+					),
+					"cost_center": setting.cost_center,
+					"included_in_print_rate": 0,
+					"dont_recompute_tax": 1,
+					"tax_amount": 0,
+					"item_wise_tax_detail": {}
+				}
+			)
 			tax_amt = (
 				flt(tax.get("rate", 0)) * flt(line_item.get("quantity", 0)) * flt(line_item.get("price", 0))
 			)
-			taxes.append(
-				{
-					"charge_type": "Actual",
-					"account_head": get_tax_account_head(tax),
-					"description": (
-						f"{get_tax_account_description(tax) or tax.get('title')} - {tax.get('rate') * 100.0:.2f}%"
-					),
-					"tax_amount": flt(tax_amt),
-					"included_in_print_rate": 0,
-					"cost_center": setting.cost_center,
-					"item_wise_tax_detail": json.dumps({item_code: [flt(tax.get("rate")) * 100, flt(tax_amt)]}),
-					"dont_recompute_tax": 1,
-				}
-			)
+
+			tax_account_wise_data[account_head]["tax_amount"] += flt(tax_amt)
+			tax_account_wise_data[account_head]["item_wise_tax_detail"].update({
+				item_code: [flt(tax.get("rate")) * 100, flt(tax_amt)]
+			})
+
+	taxes = []
+	for account, tax_row in tax_account_wise_data.items():
+		row = {"account_head": account, **tax_row}
+		row["item_wise_tax_detail"] = json.dumps(row.get("item_wise_tax_detail", {}))
+		taxes.append(row)
 
 	return taxes

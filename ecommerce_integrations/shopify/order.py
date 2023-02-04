@@ -56,12 +56,15 @@ def sync_sales_order(payload, request_id=None):
 def create_order(order, setting, company=None):
 	# local import to avoid circular dependencies
 	from ecommerce_integrations.shopify.fulfillment import create_delivery_note
-	from ecommerce_integrations.shopify.invoice import create_sales_invoice
+	from ecommerce_integrations.shopify.invoice import create_sales_invoice, make_payment_entry_against_sales_invoice
 
 	so = create_sales_order(order, setting, company)
 	if so:
 		if cint(setting.sync_invoice_on_order):
 			create_sales_invoice(order, setting, so)
+			if order.get("financial_status") == "paid":
+				make_payment_entry_against_sales_invoice(cstr(order["id"]), setting, nowdate())
+
 		elif order.get("financial_status") == "paid" and cint(setting.sync_sales_invoice_on_payment):
 			create_sales_invoice(order, setting, so)
 
@@ -95,6 +98,7 @@ def create_sales_order(shopify_order, setting, company=None):
 
 			return ""
 
+		taxes = get_order_taxes(shopify_order, setting, items)
 		so = frappe.get_doc(
 			{
 				"doctype": "Sales Order",
@@ -108,7 +112,7 @@ def create_sales_order(shopify_order, setting, company=None):
 				"selling_price_list": get_dummy_price_list(),
 				"ignore_pricing_rule": 1,
 				"items": items,
-				"taxes": get_order_taxes(shopify_order, setting),
+				"taxes": taxes,
 				"tax_category": get_dummy_tax_category(),
 			}
 		)
@@ -187,36 +191,45 @@ def _get_total_discount(line_item) -> float:
 	return sum(flt(discount.get("amount")) for discount in discount_allocations)
 
 
-def get_order_taxes(shopify_order, setting):
-	taxes = []
+def get_order_taxes(shopify_order, setting, items):
+	tax_account_wise_data = {}
 	line_items = shopify_order.get("line_items")
 
 	for line_item in line_items:
 		item_code = get_item_code(line_item)
 		for tax in line_item.get("tax_lines"):
-			taxes.append(
-				{
+			account_head = get_tax_account_head(tax)
+			tax_account_wise_data.setdefault(
+				account_head, {
 					"charge_type": "Actual",
-					"account_head": get_tax_account_head(tax),
 					"description": (
-						f"{get_tax_account_description(tax) or tax.get('title')} - {tax.get('rate') * 100.0:.2f}%"
+						f"{get_tax_account_description(tax) or tax.get('title')}"
 					),
-					"tax_amount": tax.get("price"),
-					"included_in_print_rate": 0,
 					"cost_center": setting.cost_center,
-					"item_wise_tax_detail": json.dumps(
-						{item_code: [flt(tax.get("rate")) * 100, flt(tax.get("price"))]}
-					),
+					"included_in_print_rate": 0,
 					"dont_recompute_tax": 1,
+					"tax_amount": 0,
+					"item_wise_tax_detail": {}
 				}
 			)
+			tax_account_wise_data[account_head]["tax_amount"] += flt(tax.get("price"))
+			tax_account_wise_data[account_head]["item_wise_tax_detail"].update({
+				item_code: [flt(tax.get("rate")) * 100, flt(tax.get("price"))]
+			})
 
-	taxes = update_taxes_with_shipping_lines(
-		taxes,
+	update_taxes_with_shipping_lines(
+		tax_account_wise_data,
 		shopify_order.get("shipping_lines", []),
 		setting,
+		items,
 		taxes_inclusive=shopify_order.get("taxes_included"),
 	)
+
+	taxes = []
+	for account, tax_row in tax_account_wise_data.items():
+		row = {"account_head": account, **tax_row}
+		row["item_wise_tax_detail"] = json.dumps(row.get("item_wise_tax_detail", {}))
+		taxes.append(row)
 
 	return taxes
 
@@ -244,46 +257,67 @@ def get_tax_account_description(tax):
 	return tax_description
 
 
-def update_taxes_with_shipping_lines(taxes, shipping_lines, setting, taxes_inclusive=False):
+def update_taxes_with_shipping_lines(tax_account_wise_data, shipping_lines, setting, items, taxes_inclusive=False):
 	"""Shipping lines represents the shipping details,
 	each such shipping detail consists of a list of tax_lines"""
 	for shipping_charge in shipping_lines:
 		if shipping_charge.get("price"):
-
 			shipping_discounts = shipping_charge.get("discount_allocations") or []
 			total_discount = sum(flt(discount.get("amount")) for discount in shipping_discounts)
 
 			shipping_taxes = shipping_charge.get("tax_lines") or []
-			total_tax = sum(flt(discount.get("price")) for discount in shipping_taxes)
+			total_tax = sum(flt(d.get("price")) for d in shipping_taxes)
 
 			shipping_charge_amount = flt(shipping_charge["price"]) - flt(total_discount)
 			if bool(taxes_inclusive):
 				shipping_charge_amount -= total_tax
 
-			taxes.append(
-				{
-					"charge_type": "Actual",
-					"account_head": get_tax_account_head(shipping_charge),
-					"description": get_tax_account_description(shipping_charge) or shipping_charge["title"],
-					"tax_amount": shipping_charge_amount,
-					"cost_center": setting.cost_center,
-				}
-			)
+			if cint(setting.add_shipping_as_item) and setting.shipping_item:
+				items.append(
+					{
+						"item_code": setting.shipping_item,
+						"rate": shipping_charge_amount,
+						"delivery_date": items[-1]["delivery_date"] if items else nowdate(),
+						"qty": 1,
+						"stock_uom": "Nos",
+						"warehouse": setting.warehouse,
+					}
+				)
+			else:
+				account_head = get_tax_account_head(shipping_charge)
+				if tax_account_wise_data.get(account_head):
+					tax_account_wise_data[account_head]["tax_amount"] += shipping_charge_amount
+				else:
+					tax_account_wise_data.update({
+						account_head: {
+							"charge_type": "Actual",
+							"account_head": account_head,
+							"description": get_tax_account_description(shipping_charge) or shipping_charge["title"],
+							"tax_amount": shipping_charge_amount,
+							"cost_center": setting.cost_center,
+						}
+					})
 
 		for tax in shipping_charge.get("tax_lines"):
-			taxes.append(
-				{
-					"charge_type": "Actual",
-					"account_head": get_tax_account_head(tax),
-					"description": (
-						f"{get_tax_account_description(tax) or tax.get('title')} - {tax.get('rate') * 100.0:.2f}%"
-					),
-					"tax_amount": tax["price"],
-					"cost_center": setting.cost_center,
-				}
-			)
-
-	return taxes
+			account_head = get_tax_account_head(tax)
+			if tax_account_wise_data.get(account_head):
+				tax_account_wise_data[account_head]["tax_amount"] += flt(tax["price"])
+				if cint(setting.add_shipping_as_item) and setting.shipping_item:
+					tax_account_wise_data[account_head]["item_wise_tax_detail"].update({
+						setting.shipping_item: [flt(tax.get("rate")) * 100, flt(tax.get("price"))]
+					})
+			else:
+				tax_account_wise_data.update({
+					account_head: {
+						"charge_type": "Actual",
+						"account_head": account_head,
+						"description": (
+							f"{get_tax_account_description(tax) or tax.get('title')}"
+						),
+						"tax_amount": tax["price"],
+						"cost_center": setting.cost_center,
+					}
+				})
 
 
 def get_sales_order(order_id):
