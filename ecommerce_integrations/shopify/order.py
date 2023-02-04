@@ -56,12 +56,15 @@ def sync_sales_order(payload, request_id=None):
 def create_order(order, setting, company=None):
 	# local import to avoid circular dependencies
 	from ecommerce_integrations.shopify.fulfillment import create_delivery_note
-	from ecommerce_integrations.shopify.invoice import create_sales_invoice
+	from ecommerce_integrations.shopify.invoice import create_sales_invoice, make_payment_entry_against_sales_invoice
 
 	so = create_sales_order(order, setting, company)
 	if so:
 		if cint(setting.sync_invoice_on_order):
 			create_sales_invoice(order, setting, so)
+			if order.get("financial_status") == "paid":
+				make_payment_entry_against_sales_invoice(cstr(order["id"]), setting, nowdate())
+
 		elif order.get("financial_status") == "paid" and cint(setting.sync_sales_invoice_on_payment):
 			create_sales_invoice(order, setting, so)
 

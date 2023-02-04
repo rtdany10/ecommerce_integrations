@@ -22,8 +22,11 @@ def prepare_sales_invoice(payload, request_id=None):
 	try:
 		sales_order = get_sales_order(cstr(order["id"]))
 		if sales_order:
-			payment = order.get("payment_terms", {}).get("payment_schedules", [])
-			posting_date = getdate(payment[0]["completed_at"]) if payment else nowdate()
+			posting_date = nowdate()
+			payment = order.get("payment_terms", {})
+			if payment:
+				payment = payment.get("payment_schedules", [])
+				posting_date = getdate(payment[0]["completed_at"]) if payment else nowdate()
 			if cint(setting.sync_sales_invoice_on_payment):
 				create_sales_invoice(order, setting, sales_order, posting_date)
 			make_payment_entry_against_sales_invoice(cstr(order["id"]), setting, posting_date)
