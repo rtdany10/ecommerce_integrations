@@ -214,7 +214,7 @@ def get_order_taxes(shopify_order, setting, items):
 			)
 			item_price = _get_item_price(line_item, shopify_order.get("taxes_included"))
 			if abs(flt(tax.get("price")) - (flt(item_price) * flt(tax.get("rate")))) > 1:
-				tax["rate"] = flt(flt(tax.get("price")) / flt(item_price))
+				tax["rate"] = round(flt(tax.get("price")) / flt(item_price), 1)
 
 			tax_account_wise_data[account_head]["tax_amount"] += flt(tax.get("price"))
 			tax_account_wise_data[account_head]["item_wise_tax_detail"].update({
