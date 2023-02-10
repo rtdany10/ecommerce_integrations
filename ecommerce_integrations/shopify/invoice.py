@@ -97,7 +97,7 @@ def make_payment_entry_against_sales_invoice(order_id, setting, posting_date=Non
 		)
 		payment_entry.paid_amount += inv.outstanding_amount
 
-	if payment_entry:
+	if payment_entry and payment_entry.paid_amount:
 		payment_entry.flags.ignore_mandatory = True
 		payment_entry.reference_no = order_id
 		payment_entry.posting_date = posting_date or nowdate()
