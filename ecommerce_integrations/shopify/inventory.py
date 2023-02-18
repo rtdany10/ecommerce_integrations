@@ -7,7 +7,7 @@ from pyactiveresource.connection import ResourceNotFound
 from shopify.resources import InventoryLevel, Variant
 
 from ecommerce_integrations.controllers.inventory import (
-	get_inventory_levels,
+	get_inventory_levels_of_group_warehouse,
 	update_inventory_sync_status,
 )
 from ecommerce_integrations.controllers.scheduling import need_to_run
@@ -30,7 +30,12 @@ def update_inventory_on_shopify() -> None:
 		return
 
 	warehous_map = setting.get_erpnext_to_integration_wh_mapping()
-	inventory_levels = get_inventory_levels(tuple(warehous_map.keys()), MODULE_NAME)
+	# internal customization for FP, not to be merged with other branches.
+	# 1 shopify location with stock of all warehouses
+	for wh in warehous_map.keys():
+		parent_wh = frappe.db.get_value("Warehouse", wh, "parent_warehouse") or wh
+		warehous_map[parent_wh] = warehous_map.pop(wh)
+	inventory_levels = get_inventory_levels_of_group_warehouse(tuple(warehous_map.keys()), MODULE_NAME)
 
 	if inventory_levels:
 		upload_inventory_data_to_shopify(inventory_levels, warehous_map)
