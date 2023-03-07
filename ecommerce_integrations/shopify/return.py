@@ -167,9 +167,9 @@ def get_return_items_and_taxes(shopify_order, cost_center):
 				}
 			)
 
-			tax_account_wise_data[account_head]["tax_amount"] += flt(tax.get("price"))
+			tax_account_wise_data[account_head]["tax_amount"] -= flt(tax.get("price"))
 			tax_account_wise_data[account_head]["item_wise_tax_detail"].update({
-				item_code: [flt(tax.get("rate")) * 100, flt(tax.get("price"))]
+				item_code: [flt(tax.get("rate")) * 100, -(flt(tax.get("price")))]
 			})
 	
 	for account, tax_row in tax_account_wise_data.items():
