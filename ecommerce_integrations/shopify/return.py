@@ -138,6 +138,7 @@ def get_return_items_and_taxes(shopify_order, cost_center):
 	refund_line_items = shopify_order.get("refund_line_items")
 	return_items = {}
 	restocked_items = {}
+	tax_account_wise_data = {}
 
 	for d in refund_line_items:
 		line_item = d.get("line_item")
@@ -151,22 +152,30 @@ def get_return_items_and_taxes(shopify_order, cost_center):
 			restocked_items[item_code] = d.get("quantity", 1)
 
 		for tax in line_item.get("tax_lines"):
-			taxes.append(
-				{
+			account_head = get_tax_account_head(tax)
+			tax_account_wise_data.setdefault(
+				account_head, {
 					"charge_type": "Actual",
-					"account_head": get_tax_account_head(tax),
 					"description": (
-						f"{get_tax_account_description(tax) or tax.get('title')} - {tax.get('rate') * 100.0:.2f}%"
+						f"{get_tax_account_description(tax) or tax.get('title')}"
 					),
-					"tax_amount": -(flt(tax.get("price"))),
-					"included_in_print_rate": 0,
 					"cost_center": cost_center,
-					"item_wise_tax_detail": json.dumps(
-						{item_code: [flt(tax.get("rate")) * 100, -(flt(tax.get("price")))]}
-					),
+					"included_in_print_rate": 0,
 					"dont_recompute_tax": 1,
+					"tax_amount": 0,
+					"item_wise_tax_detail": {}
 				}
 			)
+
+			tax_account_wise_data[account_head]["tax_amount"] += flt(tax.get("price"))
+			tax_account_wise_data[account_head]["item_wise_tax_detail"].update({
+				item_code: [flt(tax.get("rate")) * 100, flt(tax.get("price"))]
+			})
+	
+	for account, tax_row in tax_account_wise_data.items():
+		row = {"account_head": account, **tax_row}
+		row["item_wise_tax_detail"] = json.dumps(row.get("item_wise_tax_detail", {}))
+		taxes.append(row)
 
 	return return_items, restocked_items, taxes
 
