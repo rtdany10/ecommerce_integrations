@@ -29,15 +29,16 @@ def update_inventory_on_shopify() -> None:
 		return
 
 	warehous_map = setting.get_erpnext_to_integration_wh_mapping()
+	warehouse_map = {}
 	# internal customization for FP, not to be merged with other branches.
 	# 1 shopify location with stock of all warehouses
 	for wh in warehous_map.keys():
 		parent_wh = frappe.db.get_value("Warehouse", wh, "parent_warehouse") or wh
-		warehous_map[parent_wh] = warehous_map.pop(wh)
-	inventory_levels = get_inventory_levels_of_group_warehouse(tuple(warehous_map.keys()), MODULE_NAME)
+		warehouse_map[parent_wh] = warehous_map.pop(wh)
+	inventory_levels = get_inventory_levels_of_group_warehouse(tuple(warehouse_map.keys()), MODULE_NAME)
 
 	if inventory_levels:
-		upload_inventory_data_to_shopify(inventory_levels, warehous_map)
+		upload_inventory_data_to_shopify(inventory_levels, warehouse_map)
 
 
 @temp_shopify_session
