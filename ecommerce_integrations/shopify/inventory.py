@@ -35,7 +35,7 @@ def update_inventory_on_shopify() -> None:
 	for wh in warehous_map.keys():
 		parent_wh = frappe.db.get_value("Warehouse", wh, "parent_warehouse") or wh
 		warehouse_map[parent_wh] = warehous_map[wh]
-	inventory_levels = get_inventory_levels_of_group_warehouse(tuple(warehouse_map.keys()), MODULE_NAME)
+	inventory_levels = get_inventory_levels_of_group_warehouse(warehouse_map.keys()[0], MODULE_NAME)
 
 	if inventory_levels:
 		upload_inventory_data_to_shopify(inventory_levels, warehouse_map)
