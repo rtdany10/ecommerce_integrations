@@ -1,3 +1,5 @@
+import copy
+
 import frappe
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
 from frappe.utils import cint, cstr, getdate
@@ -62,16 +64,23 @@ def get_fulfillment_items(dn_items, fulfillment_items, location_id=None):
 	# local import to avoid circular imports
 	from ecommerce_integrations.shopify.product import get_item_code
 
-	setting = frappe.get_cached_doc(SETTING_DOCTYPE)
-	wh_map = setting.get_integration_to_erpnext_wh_mapping()
-	warehouse = wh_map.get(str(location_id)) or setting.warehouse
+	wh_mapping = frappe.get_cached_doc("Shopify Warehouse")
+	items = []
 
-	return [
-		dn_item.update({"qty": item.get("quantity"), "warehouse": warehouse})
-		for item in fulfillment_items
-		for dn_item in dn_items
-		if get_item_code(item) == dn_item.item_code
-	]
+	for item in fulfillment_items:
+		for dn_item in dn_items:
+			if get_item_code(item) == dn_item.item_code:
+				item_wh = wh_mapping.get_wh(dn_item.item_code, item.get("quantity"))
+				if not item_wh:
+					frappe.throw(
+						f"No warehouse mapping found for {dn_item.item_code} with qty {item.get('quantity')}."
+					)
+
+				for wh, qty in item_wh.items():
+					new_dn_item = copy.deepcopy(dn_item)
+					new_dn_item.update({"qty": qty, "warehouse": wh})
+					items.append(new_dn_item)
+	return items
 
 
 def update_fulfillment_status(payload, request_id=None):
