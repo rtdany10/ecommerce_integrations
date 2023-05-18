@@ -38,6 +38,10 @@ def sync_sales_order(payload, request_id=None):
 		customer_id = shopify_customer.get("id")
 		if customer_id:
 			customer = ShopifyCustomer(customer_id=customer_id)
+			# update via address/contact
+			if not customer.is_synced():
+				_validate_contact(shopify_customer)
+
 			if not customer.is_synced():
 				customer.sync_customer(customer=shopify_customer)
 			else:
@@ -53,6 +57,35 @@ def sync_sales_order(payload, request_id=None):
 		create_shopify_log(status="Success")
 
 
+def _validate_contact(shopify_customer):
+	contact = []
+	email = shopify_customer.get("email")
+	if email:
+		existing_email = frappe.db.get_value("Contact Email", {"email_id": email}, "parent")
+		if existing_email:
+			contact.append(existing_email)
+	
+	phone_no = shopify_customer.get("phone") or shopify_customer.get("default_address", {}).get(
+		"phone"
+	)
+	if phone_no:
+		existing_phone = frappe.db.get_value("Contact Phone", {"phone": phone_no}, "parent")
+		if existing_phone:
+			contact.append(existing_phone)
+	
+	if contact:
+		customer = frappe.db.get_value(
+			"Dynamic Link",
+			{
+				"parent": ["in", contact],
+				"link_doctype": "Customer"
+			},
+			"link_name"
+		)
+		if customer:
+			frappe.db.set_value("Customer", customer, CUSTOMER_ID_FIELD, shopify_customer.get("id"))
+
+
 def create_order(order, setting, company=None):
 	# local import to avoid circular dependencies
 	from ecommerce_integrations.shopify.fulfillment import create_delivery_note
@@ -63,8 +96,8 @@ def create_order(order, setting, company=None):
 		if order.get("financial_status") == "paid":
 			create_sales_invoice(order, setting, so)
 
-		if order.get("fulfillments"):
-			create_delivery_note(order, setting, so)
+		# deliver on order itself
+		create_delivery_note(order, setting, so)
 
 
 def create_sales_order(shopify_order, setting, company=None):
