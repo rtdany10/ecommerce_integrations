@@ -88,7 +88,7 @@ def _validate_contact(shopify_customer):
 
 def create_order(order, setting, company=None):
 	# local import to avoid circular dependencies
-	from ecommerce_integrations.shopify.fulfillment import create_delivery_note
+	from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
 	from ecommerce_integrations.shopify.invoice import create_sales_invoice
 
 	so = create_sales_order(order, setting, company)
@@ -97,7 +97,12 @@ def create_order(order, setting, company=None):
 			create_sales_invoice(order, setting, so)
 
 		# deliver on order itself
-		create_delivery_note(order, setting, so)
+		dn = make_delivery_note(so.name)
+		setattr(dn, ORDER_NUMBER_FIELD, order.get("name"))
+		dn.naming_series = setting.delivery_note_series or "DN-Shopify-"
+		dn.flags.ignore_mandatory = True
+		dn.save()
+		dn.submit()
 
 
 def create_sales_order(shopify_order, setting, company=None):
