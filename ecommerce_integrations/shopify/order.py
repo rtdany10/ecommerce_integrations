@@ -1,4 +1,5 @@
 import json
+import copy
 
 import frappe
 from frappe import _
@@ -100,6 +101,22 @@ def create_order(order, setting, company=None):
 		dn = make_delivery_note(so.name)
 		setattr(dn, ORDER_NUMBER_FIELD, order.get("name"))
 		dn.naming_series = setting.delivery_note_series or "DN-Shopify-"
+		
+		wh_mapping = frappe.get_cached_doc("Shopify Warehouse")
+		items = []
+		for dn_item in dn.items:
+			item_wh = wh_mapping.get_wh(dn_item.item_code, dn_item.qty)
+			if not item_wh:
+				frappe.throw(
+					f"No warehouse mapping found for {dn_item.item_code} with qty {dn_item.qty}."
+				)
+
+			for wh, qty in item_wh.items():
+				new_dn_item = copy.deepcopy(dn_item)
+				new_dn_item.update({"qty": qty, "warehouse": wh})
+				items.append(new_dn_item)
+
+		dn.items = items
 		dn.flags.ignore_mandatory = True
 		dn.save()
 		dn.submit()
