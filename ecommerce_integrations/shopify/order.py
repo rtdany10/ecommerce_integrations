@@ -126,7 +126,6 @@ def create_sales_order(shopify_order, setting, company=None):
 
 			return ""
 
-		taxes = get_order_taxes(shopify_order, setting, items)
 		so = frappe.get_doc(
 			{
 				"doctype": "Sales Order",
@@ -140,10 +139,12 @@ def create_sales_order(shopify_order, setting, company=None):
 				"selling_price_list": get_dummy_price_list(),
 				"ignore_pricing_rule": 1,
 				"items": items,
-				"taxes": taxes,
 				"tax_category": get_dummy_tax_category(),
 			}
 		)
+		taxes = get_order_taxes(shopify_order, setting, items)
+		for tax in taxes:
+			so.append("taxes", tax)
 
 		if company:
 			so.update({"company": company, "status": "Draft"})
