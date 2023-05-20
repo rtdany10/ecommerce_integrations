@@ -1,5 +1,5 @@
-import json
 import copy
+import json
 
 import frappe
 from frappe import _
@@ -65,7 +65,7 @@ def _validate_contact(shopify_customer):
 		existing_email = frappe.db.get_value("Contact Email", {"email_id": email}, "parent")
 		if existing_email:
 			contact.append(existing_email)
-	
+
 	phone_no = shopify_customer.get("phone") or shopify_customer.get("default_address", {}).get(
 		"phone"
 	)
@@ -73,15 +73,10 @@ def _validate_contact(shopify_customer):
 		existing_phone = frappe.db.get_value("Contact Phone", {"phone": phone_no}, "parent")
 		if existing_phone:
 			contact.append(existing_phone)
-	
+
 	if contact:
 		customer = frappe.db.get_value(
-			"Dynamic Link",
-			{
-				"parent": ["in", contact],
-				"link_doctype": "Customer"
-			},
-			"link_name"
+			"Dynamic Link", {"parent": ["in", contact], "link_doctype": "Customer"}, "link_name"
 		)
 		if customer:
 			frappe.db.set_value("Customer", customer, CUSTOMER_ID_FIELD, shopify_customer.get("id"))
@@ -90,6 +85,7 @@ def _validate_contact(shopify_customer):
 def create_order(order, setting, company=None):
 	# local import to avoid circular dependencies
 	from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
+
 	from ecommerce_integrations.shopify.invoice import create_sales_invoice
 
 	so = create_sales_order(order, setting, company)
@@ -101,15 +97,13 @@ def create_order(order, setting, company=None):
 		dn = make_delivery_note(so.name)
 		setattr(dn, ORDER_NUMBER_FIELD, order.get("name"))
 		dn.naming_series = setting.delivery_note_series or "DN-Shopify-"
-		
+
 		wh_mapping = frappe.get_cached_doc("Shopify Warehouse")
 		items = []
 		for dn_item in dn.items:
 			item_wh = wh_mapping.get_wh(dn_item.item_code, dn_item.qty)
 			if not item_wh:
-				frappe.throw(
-					f"No warehouse mapping found for {dn_item.item_code} with qty {dn_item.qty}."
-				)
+				frappe.throw(f"No warehouse mapping found for {dn_item.item_code} with qty {dn_item.qty}.")
 
 			for wh, qty in item_wh.items():
 				new_dn_item = copy.deepcopy(dn_item)
