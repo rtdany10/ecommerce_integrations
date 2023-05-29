@@ -12,6 +12,8 @@ from ecommerce_integrations.shopify.constants import (
 	SETTING_DOCTYPE,
 )
 
+from india_compliance.gst_india.constants import STATE_NUMBERS
+
 
 class ShopifyCustomer(EcommerceCustomer):
 	def __init__(self, customer_id: str):
@@ -127,7 +129,7 @@ def _map_address_fields(shopify_address, customer_name, address_type, email):
 
 	if address_fields["address_type"] == "Billing":
 		address_fields["gstin"] = shopify_address.get("company")
-		if address_fields["gstin"]:
+		if address_fields.get("gstin"):
 			try:
 				from india_compliance.gst_india.utils import validate_gstin
 
@@ -135,6 +137,12 @@ def _map_address_fields(shopify_address, customer_name, address_type, email):
 				address_fields["gst_category"] = "Registered Regular"
 			except Exception:
 				address_fields.pop("gstin")
+
+		if address_fields.get("gstin"):
+			if state_no := STATE_NUMBERS.get(address_fields["state"]):
+				if state_no != address_fields["gstin"][:2]:
+					address_fields.pop("gstin")
+					address_fields["gst_category"] = "Unregistered"
 
 	phone = shopify_address.get("phone")
 	if validate_phone_number(phone, throw=False):
