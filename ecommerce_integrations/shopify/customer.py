@@ -21,7 +21,7 @@ class ShopifyCustomer(EcommerceCustomer):
 	def sync_customer(self, customer: Dict[str, Any]) -> None:
 		"""Create Customer in ERPNext using shopify's Customer dict."""
 
-		customer_name = cstr(customer.get("first_name")) + " " + cstr(customer.get("last_name"))
+		customer_name = cstr(customer.get("first_name")) + " " + cstr(customer.get("last_name"))[0:20]
 		if len(customer_name.strip()) == 0:
 			customer_name = customer.get("email")
 
@@ -91,8 +91,8 @@ class ShopifyCustomer(EcommerceCustomer):
 
 		contact_fields = {
 			"status": "Passive",
-			"first_name": shopify_customer.get("first_name"),
-			"last_name": shopify_customer.get("last_name"),
+			"first_name": shopify_customer.get("first_name")[0:20],
+			"last_name": shopify_customer.get("last_name")[0:20],
 			"unsubscribed": not shopify_customer.get("accepts_marketing"),
 		}
 
@@ -112,11 +112,11 @@ class ShopifyCustomer(EcommerceCustomer):
 def _map_address_fields(shopify_address, customer_name, address_type, email):
 	""" returns dict with shopify address fields mapped to equivalent ERPNext fields"""
 	address_fields = {
-		"address_title": customer_name,
+		"address_title": customer_name[0:20],
 		"address_type": address_type,
 		ADDRESS_ID_FIELD: shopify_address.get("id"),
-		"address_line1": shopify_address.get("address1") or "Address 1",
-		"address_line2": shopify_address.get("address2"),
+		"address_line1": shopify_address.get("address1")[0:20] or "Address 1",
+		"address_line2": shopify_address.get("address2")[0:20],
 		"city": shopify_address.get("city"),
 		"state": shopify_address.get("province"),
 		"pincode": shopify_address.get("zip"),
