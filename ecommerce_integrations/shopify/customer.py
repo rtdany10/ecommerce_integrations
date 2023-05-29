@@ -74,17 +74,18 @@ class ShopifyCustomer(EcommerceCustomer):
 		address_type: str = "Billing",
 		email: Optional[str] = None,
 	) -> None:
-		old_address = self.get_customer_address_doc(address_type)
+		self.create_customer_address(customer_name, shopify_address, address_type, email)
+		# old_address = self.get_customer_address_doc(address_type)
 
-		if not old_address:
-			self.create_customer_address(customer_name, shopify_address, address_type, email)
-		else:
-			exclude_in_update = ["address_title", "address_type"]
-			new_values = _map_address_fields(shopify_address, customer_name, address_type, email)
+		# if not old_address:
+		# 	self.create_customer_address(customer_name, shopify_address, address_type, email)
+		# else:
+		# 	exclude_in_update = ["address_title", "address_type"]
+		# 	new_values = _map_address_fields(shopify_address, customer_name, address_type, email)
 
-			old_address.update({k: v for k, v in new_values.items() if k not in exclude_in_update})
-			old_address.flags.ignore_mandatory = True
-			old_address.save()
+		# 	old_address.update({k: v for k, v in new_values.items() if k not in exclude_in_update})
+		# 	old_address.flags.ignore_mandatory = True
+		# 	old_address.save()
 
 	def create_customer_contact(self, shopify_customer: Dict[str, Any]) -> None:
 
