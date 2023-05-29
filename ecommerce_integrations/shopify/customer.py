@@ -123,6 +123,7 @@ def _map_address_fields(shopify_address, customer_name, address_type, email):
 		"country": shopify_address.get("country"),
 		"email_id": email,
 		"gstin": shopify_address.get("company"),
+		"gst_category": "Unregistered"
 	}
 
 	if address_fields["gstin"]:
