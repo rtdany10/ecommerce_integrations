@@ -138,4 +138,7 @@ def _map_address_fields(shopify_address, customer_name, address_type, email):
 	if validate_phone_number(phone, throw=False):
 		address_fields["phone"] = phone
 
+	if str(address_fields["country"]).lower() != "india":
+		address_fields["gst_category"] = "Overseas"
+
 	return address_fields
