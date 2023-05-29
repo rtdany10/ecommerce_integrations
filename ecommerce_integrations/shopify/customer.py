@@ -119,7 +119,7 @@ def _map_address_fields(shopify_address, customer_name, address_type, email):
 		"address_type": address_type,
 		ADDRESS_ID_FIELD: shopify_address.get("id"),
 		"address_line1": shopify_address.get("address1")[0:20] or "Address 1",
-		"address_line2": shopify_address.get("address2")[0:20],
+		"address_line2": str(shopify_address.get("address2"))[0:20],
 		"city": shopify_address.get("city"),
 		"state": shopify_address.get("province"),
 		"pincode": shopify_address.get("zip"),
