@@ -364,6 +364,13 @@ def upload_erpnext_item(doc, method=None):
 	)
 	is_new_product = not bool(product_id)
 
+	variant_product_id = frappe.db.get_value(
+		"Ecommerce Item",
+		{"erpnext_item_code": item.name, "integration": MODULE_NAME},
+		"integration_item_code",
+	)
+	is_new_variant = (item.variant_of and not bool(variant_product_id))
+
 	if is_new_product:
 		product = Product()
 		product.published = False
@@ -425,7 +432,7 @@ def upload_erpnext_item(doc, method=None):
 				ecom_item.insert()
 
 		write_upload_log(status=is_successful, product=product, item=item)
-	elif setting.update_shopify_item_on_update:
+	elif setting.update_shopify_item_on_update or is_new_variant:
 		product = Product.find(product_id)
 		if product:
 			map_erpnext_item_to_shopify(shopify_product=product, erpnext_item=template_item)
