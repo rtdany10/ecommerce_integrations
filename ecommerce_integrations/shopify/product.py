@@ -513,7 +513,7 @@ def map_erpnext_item_to_shopify(shopify_product: Product, erpnext_item):
 	"""Map erpnext fields to shopify, called both when updating and creating new products."""
 
 	shopify_product.title = shopify_product.title or erpnext_item.item_name
-	shopify_product.body_html = shopify_product.body_htmlor erpnext_item.description
+	shopify_product.body_html = shopify_product.body_html or erpnext_item.description
 	shopify_product.product_type = erpnext_item.item_group
 
 	if erpnext_item.weight_uom in WEIGHT_TO_ERPNEXT_UOM_MAP.values():
