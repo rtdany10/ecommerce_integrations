@@ -46,10 +46,10 @@ def update_inventory_on_shopify() -> None:
 @temp_shopify_session
 def upload_inventory_data_to_shopify(inventory_levels, warehous_map) -> None:
 	synced_on = now()
-
+	default_location = list(warehous_map.keys())[0]
 	for inventory_sync_batch in create_batch(inventory_levels, 50):
 		for d in inventory_sync_batch:
-			d.shopify_location_id = warehous_map[d.warehouse]
+			d.shopify_location_id = warehous_map[default_location]
 
 			try:
 				variant = Variant.find(d.variant_id)
