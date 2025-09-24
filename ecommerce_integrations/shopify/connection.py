@@ -1,8 +1,8 @@
 import base64
+import functools
 import hashlib
 import hmac
 import json
-from typing import List
 
 import frappe
 from frappe import _
@@ -21,8 +21,8 @@ from ecommerce_integrations.shopify.utils import create_shopify_log
 def temp_shopify_session(func):
 	"""Any function that needs to access shopify api needs this decorator. The decorator starts a temp session that's destroyed when function returns."""
 
+	@functools.wraps(func)
 	def wrapper(*args, **kwargs):
-
 		# no auth in testing
 		if frappe.flags.in_test:
 			return func(*args, **kwargs)
@@ -37,7 +37,7 @@ def temp_shopify_session(func):
 	return wrapper
 
 
-def register_webhooks(shopify_url: str, password: str) -> List[Webhook]:
+def register_webhooks(shopify_url: str, password: str) -> list[Webhook]:
 	"""Register required webhooks with shopify and return registered webhooks."""
 	new_webhooks = []
 
@@ -52,7 +52,9 @@ def register_webhooks(shopify_url: str, password: str) -> List[Webhook]:
 				new_webhooks.append(webhook)
 			else:
 				create_shopify_log(
-					status="Error", response_data=webhook.to_dict(), exception=webhook.errors.full_messages(),
+					status="Error",
+					response_data=webhook.to_dict(),
+					exception=webhook.errors.full_messages(),
 				)
 
 	return new_webhooks
@@ -63,7 +65,6 @@ def unregister_webhooks(shopify_url: str, password: str) -> None:
 	url = get_current_domain_name()
 
 	with Session.temp(shopify_url, API_VERSION, password):
-
 		for webhook in Webhook.find():
 			if url in webhook.address:
 				webhook.destroy()
@@ -104,7 +105,6 @@ def store_request_data() -> None:
 
 
 def process_request(data, event):
-
 	# create log
 	log = create_shopify_log(method=EVENT_MAPPER[event], request_data=data)
 
