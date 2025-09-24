@@ -1,3 +1,4 @@
+import base64
 from typing import Optional
 
 import frappe
@@ -378,7 +379,17 @@ def upload_erpnext_item(doc, method=None):
 				sku=template_item.item_code,
 				price=template_item.get(ITEM_SELLING_RATE_FIELD),
 				is_stock_item=template_item.is_stock_item,
+				barcode=(template_item.barcodes and template_item.barcodes[0].barcode)
 			)
+
+			if template_item.image:
+				img = frappe.get_doc("File", {"file_url": template_item.image})
+				product.images = [
+					{
+						"attachment": base64.b64encode(img.get_content()).decode()
+					}
+				]
+
 			if item.variant_of:
 				product.options = []
 				product.variants = []
@@ -427,6 +438,14 @@ def upload_erpnext_item(doc, method=None):
 		product = Product.find(product_id)
 		if product:
 			map_erpnext_item_to_shopify(shopify_product=product, erpnext_item=template_item)
+			if template_item.image:
+				img = frappe.get_doc("File", {"file_url": template_item.image})
+				product.images = [
+					{
+						"attachment": base64.b64encode(img.get_content()).decode()
+					}
+				]
+
 			if not item.variant_of:
 				update_default_variant_properties(
 					product, is_stock_item=template_item.is_stock_item, price=item.get(ITEM_SELLING_RATE_FIELD)
@@ -498,6 +517,7 @@ def map_erpnext_item_to_shopify(shopify_product: Product, erpnext_item):
 	shopify_product.title = erpnext_item.item_name
 	shopify_product.body_html = erpnext_item.description
 	shopify_product.product_type = erpnext_item.item_group
+	shopify_product.vendor = erpnext_item.brand
 
 	if erpnext_item.weight_uom in WEIGHT_TO_ERPNEXT_UOM_MAP.values():
 		# reverse lookup for key
@@ -522,6 +542,7 @@ def update_default_variant_properties(
 	is_stock_item: bool,
 	sku: Optional[str] = None,
 	price: Optional[float] = None,
+	barcode: Optional[str] = None,
 ):
 	"""Shopify creates default variant upon saving the product.
 
@@ -538,6 +559,8 @@ def update_default_variant_properties(
 		default_variant.price = price
 	if sku is not None:
 		default_variant.sku = sku
+	if barcode is not None:
+		default_variant.barcode = barcode
 
 
 def write_upload_log(status: bool, product: Product, item, action="Created") -> None:
