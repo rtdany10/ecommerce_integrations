@@ -15,7 +15,6 @@ class ShopifyItemMetafield(Document):
 	def validate(self):
 		self.fetch_meta_fields()
 
-	@frappe.whitelist()
 	def fetch_meta_fields(self):
 		self.shopify_product_id = frappe.db.get_value(
 			"Ecommerce Item",
