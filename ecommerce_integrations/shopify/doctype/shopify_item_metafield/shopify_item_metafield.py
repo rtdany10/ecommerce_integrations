@@ -27,6 +27,7 @@ class ShopifyItemMetafield(Document):
 
 	def create_fields(self, meta_fields):
 		fields = []
+		last_field = self.meta.fields[-1].fieldname
 		for field in meta_fields:
 			self.set(field.get("key"), field.get("value"))
 			if self.meta.has_field(field.get("key")):
@@ -38,7 +39,9 @@ class ShopifyItemMetafield(Document):
 				"fieldtype": "Data",
 				"translatable": 0,
 				"reqd": 0,
+				"insert_after": last_field,
 			})
+			last_field = field.get("key")
 
 		create_custom_fields({self.doctype: fields})
 
