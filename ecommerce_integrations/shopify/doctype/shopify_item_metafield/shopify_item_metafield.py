@@ -35,7 +35,7 @@ class ShopifyItemMetafield(Document):
 			fields.append({
 				"fieldname": field.get("key"),
 				"label": frappe.unscrub(field.get("key")),
-				"fieldtype": "Data",
+				"fieldtype": "Small Text",
 				"translatable": 0,
 				"reqd": 0,
 				"insert_after": last_field,
