@@ -8,6 +8,7 @@ from ecommerce_integrations.shopify.connection import temp_shopify_session
 from ecommerce_integrations.shopify.constants import (
 	MODULE_NAME,
 )
+from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 
 class ShopifyItemMetafield(Document):
@@ -22,8 +23,24 @@ class ShopifyItemMetafield(Document):
 			"integration_item_code",
 		)
 		meta_fields = get_product_meta_fields(self.shopify_product_id)
-		frappe.msgprint(str(meta_fields[0]))
+		self.create_fields(meta_fields)
 
+	def create_fields(self, meta_fields):
+		fields = []
+		for field in meta_fields:
+			self.set(field.get("key"), field.get("value"))
+			if self.meta.has_field(field.get("key")):
+				continue
+
+			fields.append({
+				"fieldname": field.get("key"),
+				"label": frappe.unscrub(field.get("key")),
+				"fieldtype": "Data",
+				"translatable": 0,
+				"reqd": 0,
+			})
+
+		create_custom_fields({self.doctype: fields})
 
 
 def get_product_meta_fields(product_id):

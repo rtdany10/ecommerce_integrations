@@ -3,7 +3,7 @@
 
 frappe.ui.form.on("Shopify Item Metafield", {
 	refresh(frm) {
-        frappe.add_custom_button(__('Sync Metafields from Shopify'), function() {
+        frm.add_custom_button(__('Sync Metafields from Shopify'), function() {
             frm.call('fetch_meta_fields');
         });
 	},
