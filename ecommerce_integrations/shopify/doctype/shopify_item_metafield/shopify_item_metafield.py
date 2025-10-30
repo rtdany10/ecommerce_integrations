@@ -34,13 +34,14 @@ class ShopifyItemMetafield(Document):
 		last_field = self.meta.fields[-1].fieldname
 		field_values = {}
 		for field in meta_fields:
-			field_values[field.get("key")] = field.get("value")
-			if self.meta.has_field(field.get("key")):
+			key = frappe.scrub(field.get("key"))
+			field_values[key] = field.get("value")
+			if self.meta.has_field(key):
 				continue
 
 			fields.append({
-				"fieldname": field.get("key"),
-				"label": frappe.unscrub(field.get("key")),
+				"fieldname": key,
+				"label": frappe.unscrub(key),
 				"fieldtype": "Small Text",
 				"translatable": 0,
 				"reqd": 0,
