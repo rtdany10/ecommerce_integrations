@@ -50,7 +50,8 @@ class ShopifyItemMetafield(Document):
 			last_field = field.get("key")
 
 		create_custom_fields({self.doctype: fields})
-		self.set(field_values)
+		for k, v in field_values.items():
+			self.set(k, v)
 
 
 def get_product_meta_fields(product_id):
