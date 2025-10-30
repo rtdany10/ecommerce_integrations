@@ -21,14 +21,20 @@ class ShopifyItemMetafield(Document):
 			{"erpnext_item_code": self.item_code, "integration": MODULE_NAME},
 			"integration_item_code",
 		)
+		if not self.shopify_product_id:
+			frappe.throw(
+				f"Shopify Product ID not found for Item Code: {self.item_code} and Integration: {MODULE_NAME}"
+			)
+
 		meta_fields = get_product_meta_fields(self.shopify_product_id)
 		self.create_fields(meta_fields)
 
 	def create_fields(self, meta_fields):
 		fields = []
 		last_field = self.meta.fields[-1].fieldname
+		field_values = {}
 		for field in meta_fields:
-			self.set(field.get("key"), field.get("value"))
+			field_values[field.get("key")] = field.get("value")
 			if self.meta.has_field(field.get("key")):
 				continue
 
@@ -43,6 +49,7 @@ class ShopifyItemMetafield(Document):
 			last_field = field.get("key")
 
 		create_custom_fields({self.doctype: fields})
+		self.set(field_values)
 
 
 def get_product_meta_fields(product_id):
