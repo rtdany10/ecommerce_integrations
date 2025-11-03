@@ -3,7 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
-from shopify.resources import Product, Variant
+from shopify.resources import Product
 from ecommerce_integrations.shopify.connection import temp_shopify_session
 from ecommerce_integrations.shopify.constants import (
 	MODULE_NAME,
@@ -14,8 +14,27 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 class ShopifyItemMetafield(Document):
 	def validate(self):
 		self.fetch_meta_fields()
+		self.update_shopify_metafields()
 
-	def fetch_meta_fields(self):
+	def update_shopify_metafields(self):
+		if not self.shopify_product_id:
+			return
+
+		metafields = Product.find(self.shopify_product_id).metafields()
+		for metafield in metafields:
+			key = frappe.scrub(metafield.key)
+			if value := self.get(key):
+				if value != metafield.value:
+					metafield.value = value
+					metafield.save()
+
+		frappe.msgprint("Shopify Metafields updated successfully.")
+
+	@frappe.whitelist()
+	def fetch_meta_fields(self, force=False):
+		if not force and not self.is_new():
+			return
+
 		self.shopify_product_id = frappe.db.get_value(
 			"Ecommerce Item",
 			{"erpnext_item_code": self.item_code, "integration": MODULE_NAME},
@@ -28,6 +47,8 @@ class ShopifyItemMetafield(Document):
 
 		meta_fields = get_product_meta_fields(self.shopify_product_id)
 		self.create_fields(meta_fields)
+		if force:
+			self.save()
 
 	def create_fields(self, meta_fields):
 		fields = []
