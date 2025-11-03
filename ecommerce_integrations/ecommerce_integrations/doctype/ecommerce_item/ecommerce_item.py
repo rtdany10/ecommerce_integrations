@@ -8,6 +8,7 @@ from erpnext import get_default_company
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cstr, get_datetime, now
+from ecommerce_integrations.shopify.product import create_item_metafield
 
 
 class EcommerceItem(Document):
@@ -51,6 +52,9 @@ class EcommerceItem(Document):
 		if not self.inventory_synced_on:
 			# set to start of epoch time i.e. not synced
 			self.inventory_synced_on = get_datetime("1970-01-01")
+
+	def after_insert(self):
+		create_item_metafield(self, None)
 
 
 def is_synced(

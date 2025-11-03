@@ -16,6 +16,7 @@ class ShopifyItemMetafield(Document):
 		self.fetch_meta_fields()
 		self.update_shopify_metafields()
 
+	@temp_shopify_session
 	def update_shopify_metafields(self):
 		if not self.shopify_product_id:
 			return
@@ -71,6 +72,11 @@ class ShopifyItemMetafield(Document):
 			last_field = field.get("key")
 
 		create_custom_fields({self.doctype: fields})
+		if fields:
+			frappe.enqueue_doc(
+				self.doctype, self.name, "fetch_meta_fields", enqueue_after_commit=True, force=True
+			)
+
 		for k, v in field_values.items():
 			self.set(k, v)
 

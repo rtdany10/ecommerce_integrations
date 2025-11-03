@@ -83,9 +83,12 @@ def sync_product(product):
 	try:
 		shopify_product = ShopifyProduct(product)
 		shopify_product.sync_product()
-
 		return True
 	except Exception:
+		frappe.log_error(
+			title=f"Error syncing Shopify product {product}",
+			message=frappe.get_traceback(),
+		)
 		frappe.db.rollback()
 		return False
 

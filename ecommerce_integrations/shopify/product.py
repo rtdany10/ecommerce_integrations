@@ -579,3 +579,17 @@ def write_upload_log(status: bool, product: Product, item, action="Created") -> 
 			message=f"{action} Item: {item.name}, shopify product: {product.id}",
 			method="upload_erpnext_item",
 		)
+
+
+def create_item_metafield(doc, method=None):
+	if doc.integration != MODULE_NAME:
+		return
+
+	if frappe.db.exists("Shopify Item Metafield", {"item_code": doc.erpnext_item_code}):
+		return
+
+	frappe.get_doc({
+		"doctype": "Shopify Item Metafield",
+		"item_code": doc.erpnext_item_code,
+		"shopify_product_id": doc.integration_item_code,
+	}).insert(ignore_permissions=True)
