@@ -11,6 +11,7 @@ from ecommerce_integrations.ecommerce_integrations.doctype.ecommerce_item import
 from ecommerce_integrations.shopify.connection import temp_shopify_session
 from ecommerce_integrations.shopify.constants import (
 	ITEM_SELLING_RATE_FIELD,
+	ITEM_IMAGES_FIELD,
 	MODULE_NAME,
 	SETTING_DOCTYPE,
 	SHOPIFY_VARIANTS_ATTR_LIST,
@@ -382,13 +383,7 @@ def upload_erpnext_item(doc, method=None):
 				barcode=(template_item.barcodes and template_item.barcodes[0].barcode)
 			)
 
-			if template_item.image:
-				img = frappe.get_doc("File", {"file_url": template_item.image})
-				product.images = [
-					{
-						"attachment": base64.b64encode(img.get_content()).decode()
-					}
-				]
+			map_product_images(shopify_product=product, erpnext_item=template_item)
 
 			if item.variant_of:
 				product.options = []
@@ -438,13 +433,7 @@ def upload_erpnext_item(doc, method=None):
 		product = Product.find(product_id)
 		if product:
 			map_erpnext_item_to_shopify(shopify_product=product, erpnext_item=template_item)
-			if template_item.image:
-				img = frappe.get_doc("File", {"file_url": template_item.image})
-				product.images = [
-					{
-						"attachment": base64.b64encode(img.get_content()).decode()
-					}
-				]
+			map_product_images(shopify_product=product, erpnext_item=template_item)
 
 			if not item.variant_of:
 				update_default_variant_properties(
@@ -475,6 +464,27 @@ def upload_erpnext_item(doc, method=None):
 				map_erpnext_variant_to_shopify_variant(product, item, variant_attributes)
 
 			write_upload_log(status=is_successful, product=product, item=item, action="Updated")
+
+
+def map_product_images(shopify_product: Product, erpnext_item):
+	shopify_product.images = []
+	for row in erpnext_item.get(ITEM_IMAGES_FIELD) or []:
+		img = frappe.get_doc("File", {"file_url": row.image})
+		if img.is_remote_file:
+			shopify_product.images.append(
+				{
+					"src": img.file_url,
+					"position": row.idx,
+				}
+			)
+			continue
+
+		shopify_product.images.append(
+			{
+				"attachment": base64.b64encode(img.get_content()).decode(),
+				"position": row.idx,
+			}
+		)
 
 
 def map_erpnext_variant_to_shopify_variant(

@@ -21,6 +21,7 @@ from ecommerce_integrations.shopify.constants import (
 	CUSTOMER_ID_FIELD,
 	FULLFILLMENT_ID_FIELD,
 	ITEM_SELLING_RATE_FIELD,
+	ITEM_IMAGES_FIELD,
 	ORDER_ID_FIELD,
 	ORDER_ITEM_DISCOUNT_FIELD,
 	ORDER_NUMBER_FIELD,
@@ -118,6 +119,13 @@ def setup_custom_fields():
 				label="Shopify Selling Rate",
 				fieldtype="Currency",
 				insert_after="standard_rate",
+			),
+			dict(
+				fieldname=ITEM_IMAGES_FIELD,
+				label="Shopify Images",
+				fieldtype="Table",
+				options="Shopify Item Image",
+				insert_after="max_discount",
 			)
 		],
 		"Customer": [
