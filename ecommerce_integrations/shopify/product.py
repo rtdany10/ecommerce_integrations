@@ -380,7 +380,9 @@ def upload_erpnext_item(doc, method=None):
 				sku=template_item.item_code,
 				price=template_item.get(ITEM_SELLING_RATE_FIELD),
 				is_stock_item=template_item.is_stock_item,
-				barcode=(template_item.barcodes and template_item.barcodes[0].barcode)
+				barcode=str(
+					(template_item.barcodes and template_item.barcodes[0].barcode) or ""
+				)
 			)
 
 			map_product_images(shopify_product=product, erpnext_item=template_item)
