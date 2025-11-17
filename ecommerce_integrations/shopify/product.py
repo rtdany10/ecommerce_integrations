@@ -155,6 +155,8 @@ class ShopifyProduct:
 				has_variants=has_variant,
 			)
 		else:
+			item_dict.pop("item_code", None)
+			item_dict.pop("stock_uom", None)
 			item_doc.update(item_dict)
 			item_doc.save()
 
