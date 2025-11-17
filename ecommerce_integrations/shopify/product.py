@@ -141,9 +141,10 @@ class ShopifyProduct:
 		variant_id = product_dict.get("variant_id", "")  # shopify variant_id if has variants
 		sku = item_dict["sku"]
 
-		if not _match_sku_and_link_item(
+		item_doc = _match_sku_and_link_item(
 			item_dict, integration_item_code, variant_id, variant_of=variant_of, has_variant=has_variant
-		):
+		)
+		if not item_doc:
 			ecommerce_item.create_ecommerce_item(
 				MODULE_NAME,
 				integration_item_code,
@@ -153,6 +154,9 @@ class ShopifyProduct:
 				variant_of=variant_of,
 				has_variants=has_variant,
 			)
+		else:
+			item_doc.update(item_dict)
+			item_doc.save()
 
 	def _create_item_variants(self, product_dict, warehouse, attributes):
 		template_item = ecommerce_item.get_erpnext_item(
@@ -276,7 +280,7 @@ def _match_sku_and_link_item(
 	if not sku or variant_of or has_variant:
 		return False
 
-	item_name = frappe.db.get_value("Item", {"item_code": sku})
+	item_name = frappe.db.get_value("Item", {"custom_existing_shopify_id": product_id})
 	if item_name:
 		try:
 			ecommerce_item = frappe.get_doc(
@@ -292,7 +296,7 @@ def _match_sku_and_link_item(
 			)
 
 			ecommerce_item.insert()
-			return True
+			return frappe.get_doc("Item", item_name)
 		except Exception:
 			return False
 
@@ -605,3 +609,14 @@ def create_item_metafield(doc, method=None):
 		"item_code": doc.erpnext_item_code,
 		"shopify_product_id": doc.integration_item_code,
 	}).insert(ignore_permissions=True)
+
+
+def map_to_existing_item(doc, method=None):
+	"""Using shopify order, sync all items that are not already synced."""
+	product_id = doc.get("custom_existing_shopify_id")
+	if not product_id:
+		return
+
+	product = ShopifyProduct(product_id)
+	product.sync_product()
+	doc.db_set("custom_existing_shopify_id", "")
