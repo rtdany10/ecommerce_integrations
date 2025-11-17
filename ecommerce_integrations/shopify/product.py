@@ -155,10 +155,9 @@ class ShopifyProduct:
 				has_variants=has_variant,
 			)
 		else:
-			item_dict.pop("item_code", None)
-			item_dict.pop("stock_uom", None)
-			for key, value in item_dict.items():
-				item_doc.db_set(key, value)
+			frappe.msgprint(
+				str(item_dict)
+			)
 
 	def _create_item_variants(self, product_dict, warehouse, attributes):
 		template_item = ecommerce_item.get_erpnext_item(
@@ -621,4 +620,4 @@ def map_to_existing_item(doc, method=None):
 
 	product = ShopifyProduct(product_id)
 	product.sync_product()
-	doc.db_set("custom_existing_shopify_id", "")
+	# doc.db_set("custom_existing_shopify_id", "")
