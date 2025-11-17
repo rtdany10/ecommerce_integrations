@@ -157,8 +157,8 @@ class ShopifyProduct:
 		else:
 			item_dict.pop("item_code", None)
 			item_dict.pop("stock_uom", None)
-			item_doc.update(item_dict)
-			item_doc.save()
+			for key, value in item_dict.items():
+				item_doc.db_set(key, value)
 
 	def _create_item_variants(self, product_dict, warehouse, attributes):
 		template_item = ecommerce_item.get_erpnext_item(
