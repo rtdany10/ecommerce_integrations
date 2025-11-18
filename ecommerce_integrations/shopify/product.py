@@ -162,7 +162,10 @@ class ShopifyProduct:
 				has_variants=has_variant,
 			)
 		else:
-			for d in ["variant_of", "item_code", "has_variants", "attributes", "item_name"]:
+			for d in [
+				"variant_of", "item_code", "has_variants",
+				"attributes", "item_name", "item_group"
+			]:
 				item_dict.pop(d, None)
 			item_doc.update(item_dict)
 			item_doc.set("existing_shopify_id", "")
