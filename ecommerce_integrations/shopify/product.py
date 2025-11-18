@@ -483,8 +483,8 @@ def upload_erpnext_item(doc, method=None):
 			# 	product.variants.append(Variant(variant_attributes))
 
 			is_successful = product.save()
-			if is_successful and item.variant_of:
-				map_erpnext_variant_to_shopify_variant(product, item, variant_attributes)
+			# if is_successful and item.variant_of:
+			# 	map_erpnext_variant_to_shopify_variant(product, item, variant_attributes)
 
 			write_upload_log(status=is_successful, product=product, item=item, action="Updated")
 
