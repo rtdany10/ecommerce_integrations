@@ -135,7 +135,13 @@ class ShopifyProduct:
 			"weight_uom": WEIGHT_TO_ERPNEXT_UOM_MAP[product_dict.get("weight_unit")],
 			"weight_per_unit": product_dict.get("weight"),
 			"default_supplier": self._get_supplier(product_dict),
+			"shopify_images": []
 		}
+
+		for img in product_dict.get("images"):
+			item_dict["shopify_images"].append(
+				{"image": img.get("src")}
+			)
 
 		integration_item_code = product_dict["id"]  # shopify product_id
 		variant_id = product_dict.get("variant_id", "")  # shopify variant_id if has variants
