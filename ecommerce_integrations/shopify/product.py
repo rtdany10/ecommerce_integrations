@@ -628,7 +628,7 @@ def map_to_existing_item(doc, method=None):
 
 	product = ShopifyProduct(product_id)
 	if product.is_synced():
-		frappe.msgprint(f"{doc.name} is already synced to Shopify and cannot be mapped again.")
+		frappe.msgprint(f"Shopify product {product_id} is already synced to ERP and cannot be mapped again.")
 		doc.db_set("existing_shopify_id", "")
 		return
 
