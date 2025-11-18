@@ -290,10 +290,6 @@ def _match_sku_and_link_item(
 
 	Returns true if matched and linked.
 	"""
-	sku = item_dict["sku"]
-	if not sku or variant_of or has_variant:
-		return False
-
 	item_name = frappe.db.get_value("Item", {"existing_shopify_id": product_id})
 	if item_name:
 		try:
@@ -308,11 +304,11 @@ def _match_sku_and_link_item(
 					"sku": sku,
 				}
 			)
-
 			ecommerce_item.insert()
 			return frappe.get_doc("Item", item_name)
 		except Exception:
 			return False
+	return False
 
 
 def create_items_if_not_exist(order):
