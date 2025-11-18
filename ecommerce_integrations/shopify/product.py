@@ -495,6 +495,7 @@ def map_product_images(shopify_product: Product, erpnext_item):
 		try:
 			img = frappe.get_doc("File", {"file_url": row.image})
 		except Exception:
+			frappe.clear_last_message()
 			shopify_product.images.append(
 				{
 					"src": row.image,
