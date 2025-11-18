@@ -137,6 +137,7 @@ class ShopifyProduct:
 			"default_supplier": self._get_supplier(product_dict),
 			"shopify_images": []
 		}
+		item_dict["shopify_title"] = item_dict["item_name"]
 
 		for img in product_dict.get("images"):
 			item_dict["shopify_images"].append(
@@ -161,7 +162,7 @@ class ShopifyProduct:
 				has_variants=has_variant,
 			)
 		else:
-			for d in ["variant_of", "item_code", "has_variants", "attributes"]:
+			for d in ["variant_of", "item_code", "has_variants", "attributes", "item_name"]:
 				item_dict.pop(d, None)
 			item_doc.update(item_dict)
 			item_doc.set("existing_shopify_id", "")
