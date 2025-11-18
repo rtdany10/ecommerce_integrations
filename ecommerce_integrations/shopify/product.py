@@ -155,7 +155,8 @@ class ShopifyProduct:
 				has_variants=has_variant,
 			)
 		else:
-			item_dict.pop("item_code", None)
+			for d in ["variant_of", "item_code", "has_variants", "attributes"]:
+				item_dict.pop(d, None)
 			item_doc.update(item_dict)
 			item_doc.set("existing_shopify_id", "")
 			item_doc.save()
