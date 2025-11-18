@@ -155,9 +155,11 @@ class ShopifyProduct:
 				has_variants=has_variant,
 			)
 		else:
-			frappe.msgprint(
-				str(item_dict)
-			)
+			item_dict.pop("item_code", None)
+			item_doc.update(item_dict)
+			item_doc.set("existing_shopify_id", "")
+			item_doc.save()
+			item_doc.notify_update()
 
 	def _create_item_variants(self, product_dict, warehouse, attributes):
 		template_item = ecommerce_item.get_erpnext_item(
@@ -281,7 +283,7 @@ def _match_sku_and_link_item(
 	if not sku or variant_of or has_variant:
 		return False
 
-	item_name = frappe.db.get_value("Item", {"custom_existing_shopify_id": product_id})
+	item_name = frappe.db.get_value("Item", {"existing_shopify_id": product_id})
 	if item_name:
 		try:
 			ecommerce_item = frappe.get_doc(
@@ -342,7 +344,10 @@ def upload_erpnext_item(doc, method=None):
 	if item.flags.from_integration:
 		return
 
-	if item.get("custom_existing_shopify_id"):
+	if not item.get("shopify_sync"):
+		return
+
+	if item.get("existing_shopify_id"):
 		return
 
 	setting = frappe.get_doc(SETTING_DOCTYPE)
@@ -617,10 +622,14 @@ def create_item_metafield(doc, method=None):
 
 def map_to_existing_item(doc, method=None):
 	"""Using shopify order, sync all items that are not already synced."""
-	product_id = doc.get("custom_existing_shopify_id")
+	product_id = doc.get("existing_shopify_id")
 	if not product_id:
 		return
 
 	product = ShopifyProduct(product_id)
+	if product.is_synced():
+		frappe.msgprint(f"{doc.name} is already synced to Shopify and cannot be mapped again.")
+		doc.db_set("existing_shopify_id", "")
+		return
+
 	product.sync_product()
-	# doc.db_set("custom_existing_shopify_id", "")
