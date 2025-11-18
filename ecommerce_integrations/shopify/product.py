@@ -492,22 +492,32 @@ def upload_erpnext_item(doc, method=None):
 def map_product_images(shopify_product: Product, erpnext_item):
 	shopify_product.images = []
 	for row in erpnext_item.get(ITEM_IMAGES_FIELD) or []:
-		img = frappe.get_doc("File", {"file_url": row.image})
-		if img.is_remote_file:
+		try:
+			img = frappe.get_doc("File", {"file_url": row.image})
+		except Exception:
 			shopify_product.images.append(
 				{
-					"src": img.file_url,
+					"src": row.image,
 					"position": row.idx,
 				}
 			)
 			continue
+		else:
+			if img.is_remote_file:
+				shopify_product.images.append(
+					{
+						"src": img.file_url,
+						"position": row.idx,
+					}
+				)
+				continue
 
-		shopify_product.images.append(
-			{
-				"attachment": base64.b64encode(img.get_content()).decode(),
-				"position": row.idx,
-			}
-		)
+			shopify_product.images.append(
+				{
+					"attachment": base64.b64encode(img.get_content()).decode(),
+					"position": row.idx,
+				}
+			)
 
 
 def map_erpnext_variant_to_shopify_variant(
