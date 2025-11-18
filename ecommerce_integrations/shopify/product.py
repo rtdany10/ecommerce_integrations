@@ -290,6 +290,7 @@ def _match_sku_and_link_item(
 
 	Returns true if matched and linked.
 	"""
+	sku = item_dict["sku"]
 	item_name = frappe.db.get_value("Item", {"existing_shopify_id": product_id})
 	if item_name:
 		try:
