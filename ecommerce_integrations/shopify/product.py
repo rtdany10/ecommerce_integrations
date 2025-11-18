@@ -547,7 +547,7 @@ def map_erpnext_variant_to_shopify_variant(
 def map_erpnext_item_to_shopify(shopify_product: Product, erpnext_item):
 	"""Map erpnext fields to shopify, called both when updating and creating new products."""
 
-	shopify_product.title = erpnext_item.item_name
+	shopify_product.title = erpnext_item.shopify_title
 	shopify_product.body_html = erpnext_item.description
 	shopify_product.product_type = erpnext_item.item_group
 	shopify_product.vendor = erpnext_item.brand
