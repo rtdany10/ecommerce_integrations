@@ -141,12 +141,14 @@ class ShopifyProduct:
 		item_dict["shopify_title"] = item_dict["item_name"]
 
 		for img in product_dict.get("images"):
-			file_name = f'{item_dict["shopify_title"]}{frappe.generate_hash(item_dict["shopify_title"], 5)}.{img.get("src").split(".")[-1]}'
+			response = requests.get(img.get("src"))
+			file_type = response.headers.get("Content-Type").split("/")[-1]
+			file_name = f'{item_dict["shopify_title"]}{frappe.generate_hash(item_dict["shopify_title"], 5)}.{file_type}'
 			file = frappe.get_doc(
 				{
 					"doctype": "File",
 					"file_name": file_name,
-					"content": requests.get(img.get("src")).content,
+					"content": response.content,
 				}
 			)
 			file.save(ignore_permissions=True)
