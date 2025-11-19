@@ -1,4 +1,5 @@
 import base64
+import requests
 from typing import Optional
 
 import frappe
@@ -140,8 +141,17 @@ class ShopifyProduct:
 		item_dict["shopify_title"] = item_dict["item_name"]
 
 		for img in product_dict.get("images"):
+			file_name = f'{item_dict["shopify_title"]}{frappe.generate_hash(item_dict["shopify_title"], 5)}.{img.get("src").split(".")[-1]}'
+			file = frappe.get_doc(
+                {
+                    "doctype": "File",
+                    "file_name": file_name,
+                    "content": requests.get(img.get("src")).content,
+                }
+            )
+            file.save(ignore_permissions=True)
 			item_dict["shopify_images"].append(
-				{"image": img.get("src")}
+				{"image": file.file_url}
 			)
 
 		integration_item_code = product_dict["id"]  # shopify product_id
