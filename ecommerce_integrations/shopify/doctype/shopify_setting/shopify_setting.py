@@ -23,6 +23,8 @@ from ecommerce_integrations.shopify.constants import (
 	ITEM_SELLING_RATE_FIELD,
 	ITEM_IMAGES_FIELD,
 	ITEM_META_FIELD,
+	ITEM_STATUS_FIELD,
+	ITEM_PUBLISHED_FIELD,
 	ORDER_ID_FIELD,
 	ORDER_ITEM_DISCOUNT_FIELD,
 	ORDER_NUMBER_FIELD,
@@ -134,6 +136,19 @@ def setup_custom_fields():
 				fieldtype="Table",
 				options="Item Metafield",
 				insert_after="brand",
+			),
+			dict(
+				fieldname=ITEM_STATUS_FIELD,
+				label="Shopify Status",
+				fieldtype="Select",
+				options="Draft\nActive",
+				insert_after=ITEM_SELLING_RATE_FIELD,
+			),
+			dict(
+				fieldname=ITEM_PUBLISHED_FIELD,
+				label="Shopify Published",
+				fieldtype="Check",
+				insert_after=ITEM_STATUS_FIELD,
 			)
 		],
 		"Customer": [

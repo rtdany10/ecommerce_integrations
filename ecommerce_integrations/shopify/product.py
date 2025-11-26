@@ -14,6 +14,8 @@ from ecommerce_integrations.shopify.constants import (
 	ITEM_SELLING_RATE_FIELD,
 	ITEM_IMAGES_FIELD,
 	ITEM_META_FIELD,
+	ITEM_STATUS_FIELD,
+	ITEM_PUBLISHED_FIELD,
 	MODULE_NAME,
 	SETTING_DOCTYPE,
 	SHOPIFY_VARIANTS_ATTR_LIST,
@@ -406,8 +408,8 @@ def upload_erpnext_item(doc, method=None):
 
 	if is_new_product:
 		product = Product()
-		product.published = False
-		product.status = "active" if setting.sync_new_item_as_active else "draft"
+		product.published = (cint(template_item.get(ITEM_PUBLISHED_FIELD, 0)) == 1)
+		product.status = (template_item.get(ITEM_STATUS_FIELD)).lower()
 
 		map_erpnext_item_to_shopify(shopify_product=product, erpnext_item=template_item)
 		is_successful = product.save()
@@ -473,6 +475,9 @@ def upload_erpnext_item(doc, method=None):
 	elif setting.update_shopify_item_on_update:
 		product = Product.find(product_id)
 		if product:
+			product.published = (cint(template_item.get(ITEM_PUBLISHED_FIELD, 0)) == 1)
+			product.status = (template_item.get(ITEM_STATUS_FIELD)).lower()
+
 			map_erpnext_item_to_shopify(shopify_product=product, erpnext_item=template_item)
 			map_product_images(shopify_product=product, erpnext_item=template_item)
 			map_product_metafields(shopify_product=product, erpnext_item=template_item)
