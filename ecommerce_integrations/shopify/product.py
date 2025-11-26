@@ -6,13 +6,14 @@ import frappe
 from frappe import _, msgprint
 from frappe.utils import cint, cstr
 from frappe.utils.nestedset import get_root_of
-from shopify.resources import Product, Variant
+from shopify.resources import Product, Variant, Metafield
 
 from ecommerce_integrations.ecommerce_integrations.doctype.ecommerce_item import ecommerce_item
 from ecommerce_integrations.shopify.connection import temp_shopify_session
 from ecommerce_integrations.shopify.constants import (
 	ITEM_SELLING_RATE_FIELD,
 	ITEM_IMAGES_FIELD,
+	ITEM_META_FIELD,
 	MODULE_NAME,
 	SETTING_DOCTYPE,
 	SHOPIFY_VARIANTS_ATTR_LIST,
@@ -56,8 +57,8 @@ class ShopifyProduct:
 	@temp_shopify_session
 	def sync_product(self):
 		if not self.is_synced():
-			shopify_product = Product.find(self.product_id)
-			product_dict = shopify_product.to_dict()
+			self.shopify_product = Product.find(self.product_id)
+			product_dict = self.shopify_product.to_dict()
 			self._make_item(product_dict)
 
 	def _make_item(self, product_dict):
@@ -70,7 +71,6 @@ class ShopifyProduct:
 			attributes = self._create_attribute(product_dict)
 			self._create_item(product_dict, warehouse, 1, attributes)
 			self._create_item_variants(product_dict, warehouse, attributes)
-
 		else:
 			product_dict["variant_id"] = product_dict["variants"][0]["id"]
 			self._create_item(product_dict, warehouse)
@@ -181,6 +181,8 @@ class ShopifyProduct:
 				item_dict.pop(d, None)
 			item_doc.update(item_dict)
 			item_doc.set("existing_shopify_id", "")
+			if self.shopify_product:
+				get_product_meta_fields(self.shopify_product, item_doc)
 			item_doc.save()
 			item_doc.notify_update()
 
@@ -256,7 +258,10 @@ class ShopifyProduct:
 					SUPPLIER_ID_FIELD: product_dict.get("vendor").lower(),
 					"supplier_group": self._get_supplier_group(),
 				}
-			).insert()
+			)
+			supplier.flags.ignore_permissions = True
+			supplier.flags.ignore_mandatory = True
+			supplier.insert()
 			return supplier.name
 		else:
 			return ""
@@ -419,6 +424,7 @@ def upload_erpnext_item(doc, method=None):
 			)
 
 			map_product_images(shopify_product=product, erpnext_item=template_item)
+			map_product_metafields(shopify_product=product, erpnext_item=template_item)
 
 			# if item.variant_of:
 			# 	product.options = []
@@ -469,6 +475,7 @@ def upload_erpnext_item(doc, method=None):
 		if product:
 			map_erpnext_item_to_shopify(shopify_product=product, erpnext_item=template_item)
 			map_product_images(shopify_product=product, erpnext_item=template_item)
+			map_product_metafields(shopify_product=product, erpnext_item=template_item)
 
 			# if not item.variant_of:
 			update_default_variant_properties(
@@ -499,6 +506,46 @@ def upload_erpnext_item(doc, method=None):
 			# 	map_erpnext_variant_to_shopify_variant(product, item, variant_attributes)
 
 			write_upload_log(status=is_successful, product=product, item=item, action="Updated")
+
+
+def get_product_meta_fields(shopify_product: Product, erpnext_item):
+	metafields = shopify_product.metafields()
+	erpnext_item.set(ITEM_META_FIELD, [])
+	for metafield in metafields:
+		data = metafield.to_dict()
+		erpnext_item.append(
+			ITEM_META_FIELD,
+			{
+				"metafield": data.get("key"),
+				"metafield_value": data.get("value"),
+				"namespace": data.get("namespace"),
+				"value_type": data.get("type"),
+			}
+		)
+
+
+def map_product_metafields(shopify_product, erpnext_item):
+	metafields = shopify_product.metafields()
+	for row in erpnext_item.get(ITEM_META_FIELD) or []:
+		existing_metafield = None
+		for metafield in metafields:
+			if metafield.key == row.metafield:
+				existing_metafield = metafield
+				existing_metafield.value = row.metafield_value
+				existing_metafield.save()
+				continue
+
+		if existing_metafield:
+			continue
+
+		shopify_product.add_metafield(
+			Metafield({
+				"namespace": row.namespace,
+				"key": row.metafield,
+				"value": row.metafield_value,
+				"value_type": row.value_type,
+			})
+		)
 
 
 def map_product_images(shopify_product: Product, erpnext_item):
@@ -637,20 +684,6 @@ def write_upload_log(status: bool, product: Product, item, action="Created") -> 
 		)
 
 
-def create_item_metafield(doc, method=None):
-	if doc.integration != MODULE_NAME:
-		return
-
-	if frappe.db.exists("Shopify Item Metafield", {"item_code": doc.erpnext_item_code}):
-		return
-
-	frappe.get_doc({
-		"doctype": "Shopify Item Metafield",
-		"item_code": doc.erpnext_item_code,
-		"shopify_product_id": doc.integration_item_code,
-	}).insert(ignore_permissions=True)
-
-
 def map_to_existing_item(doc, method=None):
 	"""Using shopify order, sync all items that are not already synced."""
 	product_id = doc.get("existing_shopify_id")
@@ -659,7 +692,7 @@ def map_to_existing_item(doc, method=None):
 
 	product = ShopifyProduct(product_id)
 	if product.is_synced():
-		frappe.msgprint(f"Shopify product {product_id} is already synced to ERP and cannot be mapped again.")
+		frappe.msgprint(f"Shopify product {product_id} is already synced to item {product.get_erpnext_item()} and cannot be mapped again.")
 		doc.db_set("existing_shopify_id", "")
 		return
 

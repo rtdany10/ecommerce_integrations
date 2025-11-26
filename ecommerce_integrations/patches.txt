@@ -1,2 +1,2 @@
-ecommerce_integrations.patches.update_shopify_custom_fields #04/11/2025
+ecommerce_integrations.patches.update_shopify_custom_fields #26/11/2025
 ecommerce_integrations.patches.set_default_amazon_item_fields_map

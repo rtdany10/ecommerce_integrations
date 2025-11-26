@@ -22,6 +22,7 @@ from ecommerce_integrations.shopify.constants import (
 	FULLFILLMENT_ID_FIELD,
 	ITEM_SELLING_RATE_FIELD,
 	ITEM_IMAGES_FIELD,
+	ITEM_META_FIELD,
 	ORDER_ID_FIELD,
 	ORDER_ITEM_DISCOUNT_FIELD,
 	ORDER_NUMBER_FIELD,
@@ -126,6 +127,13 @@ def setup_custom_fields():
 				fieldtype="Table",
 				options="Shopify Item Image",
 				insert_after="max_discount",
+			),
+			dict(
+				fieldname=ITEM_META_FIELD,
+				label="Shopify Metafields",
+				fieldtype="Table",
+				options="Item Metafield",
+				insert_after="brand",
 			)
 		],
 		"Customer": [
