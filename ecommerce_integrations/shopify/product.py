@@ -12,6 +12,7 @@ from ecommerce_integrations.ecommerce_integrations.doctype.ecommerce_item import
 from ecommerce_integrations.shopify.connection import temp_shopify_session
 from ecommerce_integrations.shopify.constants import (
 	ITEM_SELLING_RATE_FIELD,
+	ITEM_COMPARE_PRICE_FIELD,
 	ITEM_IMAGES_FIELD,
 	ITEM_META_FIELD,
 	ITEM_STATUS_FIELD,
@@ -422,7 +423,8 @@ def upload_erpnext_item(doc, method=None):
 				is_stock_item=template_item.is_stock_item,
 				barcode=str(
 					(template_item.barcodes and template_item.barcodes[0].barcode) or ""
-				)
+				),
+				compare_at=template_item.get(ITEM_COMPARE_PRICE_FIELD),
 			)
 
 			map_product_images(shopify_product=product, erpnext_item=template_item)
@@ -484,7 +486,8 @@ def upload_erpnext_item(doc, method=None):
 
 			# if not item.variant_of:
 			update_default_variant_properties(
-				product, is_stock_item=template_item.is_stock_item, price=item.get(ITEM_SELLING_RATE_FIELD)
+				product, is_stock_item=template_item.is_stock_item,
+				price=item.get(ITEM_SELLING_RATE_FIELD), compare_at=item.get(ITEM_COMPARE_PRICE_FIELD)
 			)
 			# else:
 			# 	variant_attributes = {"sku": item.item_code, "price": item.get(ITEM_SELLING_RATE_FIELD)}
@@ -651,6 +654,7 @@ def update_default_variant_properties(
 	sku: Optional[str] = None,
 	price: Optional[float] = None,
 	barcode: Optional[str] = None,
+	compare_at: Optional[float] = None,
 ):
 	"""Shopify creates default variant upon saving the product.
 
@@ -669,6 +673,8 @@ def update_default_variant_properties(
 		default_variant.sku = sku
 	if barcode is not None:
 		default_variant.barcode = barcode
+	if compare_at is not None:
+		default_variant.compare_at_price = compare_at
 
 
 def write_upload_log(status: bool, product: Product, item, action="Created") -> None:

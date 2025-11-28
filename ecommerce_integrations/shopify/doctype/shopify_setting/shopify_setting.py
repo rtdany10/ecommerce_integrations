@@ -21,6 +21,7 @@ from ecommerce_integrations.shopify.constants import (
 	CUSTOMER_ID_FIELD,
 	FULLFILLMENT_ID_FIELD,
 	ITEM_SELLING_RATE_FIELD,
+	ITEM_COMPARE_PRICE_FIELD,
 	ITEM_IMAGES_FIELD,
 	ITEM_META_FIELD,
 	ITEM_STATUS_FIELD,
@@ -122,6 +123,12 @@ def setup_custom_fields():
 				label="Shopify Selling Rate",
 				fieldtype="Currency",
 				insert_after="standard_rate",
+			),
+			dict(
+				fieldname=ITEM_COMPARE_PRICE_FIELD,
+				label="Shopify Compare at Price",
+				fieldtype="Currency",
+				insert_after=ITEM_SELLING_RATE_FIELD,
 			),
 			dict(
 				fieldname=ITEM_IMAGES_FIELD,
