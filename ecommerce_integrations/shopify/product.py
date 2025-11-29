@@ -58,8 +58,8 @@ class ShopifyProduct:
 		)
 
 	@temp_shopify_session
-	def sync_product(self):
-		if not self.is_synced():
+	def sync_product(self, force=False):
+		if force or not self.is_synced():
 			self.shopify_product = Product.find(self.product_id)
 			product_dict = self.shopify_product.to_dict()
 			self._make_item(product_dict)
@@ -654,8 +654,4 @@ def map_to_existing_item(product_id):
 		return
 
 	product = ShopifyProduct(product_id)
-	if product.is_synced():
-		frappe.msgprint(f"Shopify product {product_id} is already synced to item {product.get_erpnext_item()} and cannot be mapped again.")
-		return
-
-	product.sync_product()
+	product.sync_product(force=True)
