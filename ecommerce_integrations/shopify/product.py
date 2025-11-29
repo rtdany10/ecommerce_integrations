@@ -140,6 +140,8 @@ class ShopifyProduct:
 			"weight_per_unit": product_dict.get("weight"),
 			"default_supplier": self._get_supplier(product_dict),
 			"shopify_images": [],
+			ITEM_PUBLISHED_FIELD: 1 if product_dict.get("published_at") else 0,
+			ITEM_STATUS_FIELD: product_dict.get("status").title(),
 		}
 		item_dict["shopify_title"] = item_dict["item_name"]
 		if vdata := product_dict.get("variants"):
