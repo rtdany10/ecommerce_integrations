@@ -140,11 +140,11 @@ class ShopifyProduct:
 			"weight_per_unit": product_dict.get("weight"),
 			"default_supplier": self._get_supplier(product_dict),
 			"shopify_images": [],
-			ITEM_COMPARE_PRICE_FIELD: product_dict.get("compare_at_price") or 0.0,
-			ITEM_SELLING_RATE_FIELD: product_dict.get("price") or 0.0,
-			# ITEM_PUBLISHED_FIELD: 
 		}
 		item_dict["shopify_title"] = item_dict["item_name"]
+		if vdata := product_dict.get("variants"):
+			item_dict[ITEM_COMPARE_PRICE_FIELD] = vdata[0].get("compare_at_price")
+			item_dict[ITEM_SELLING_RATE_FIELD] = vdata[0].get("price")
 
 		for img in product_dict.get("images"):
 			response = requests.get(img.get("src"))
