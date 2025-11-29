@@ -328,9 +328,10 @@ def _match_sku_and_link_item(
 				}
 			)
 			ecommerce_item.insert()
-			return frappe.get_doc("Item", item_name)
 		except Exception:
-			return False
+			pass
+
+		return frappe.get_doc("Item", item_name)
 	return False
 
 
