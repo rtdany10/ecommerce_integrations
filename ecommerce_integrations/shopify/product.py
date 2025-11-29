@@ -191,6 +191,7 @@ class ShopifyProduct:
 			if self.shopify_product:
 				get_product_meta_fields(self.shopify_product, item_doc)
 			item_doc.save()
+			item_doc.db_set("shopify_sync", 1)
 			item_doc.notify_update()
 
 	def _create_item_variants(self, product_dict, warehouse, attributes):
