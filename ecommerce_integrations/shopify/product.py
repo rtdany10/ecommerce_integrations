@@ -429,32 +429,7 @@ def upload_erpnext_item(doc, method=None):
 			map_product_images(shopify_product=product, erpnext_item=template_item)
 			map_product_metafields(shopify_product=product, erpnext_item=template_item)
 
-			# if item.variant_of:
-			# 	product.options = []
-			# 	product.variants = []
-			# 	variant_attributes = {
-			# 		"title": template_item.item_name,
-			# 		"sku": item.item_code,
-			# 		"price": item.get(ITEM_SELLING_RATE_FIELD),
-			# 	}
-			# 	max_index_range = min(3, len(template_item.attributes))
-			# 	for i in range(0, max_index_range):
-			# 		attr = template_item.attributes[i]
-			# 		product.options.append(
-			# 			{
-			# 				"name": attr.attribute,
-			# 				"values": frappe.db.get_all(
-			# 					"Item Attribute Value", {"parent": attr.attribute}, pluck="attribute_value"
-			# 				),
-			# 			}
-			# 		)
-			# 		try:
-			# 			variant_attributes[f"option{i+1}"] = item.attributes[i].attribute_value
-			# 		except IndexError:
-			# 			frappe.throw(_("Shopify Error: Missing value for attribute {}").format(attr.attribute))
-			# 	product.variants.append(Variant(variant_attributes))
-
-			product.save()  # push variant
+			product.save()
 
 			ecom_items = list(set([item, template_item]))
 			for d in ecom_items:
@@ -483,34 +458,12 @@ def upload_erpnext_item(doc, method=None):
 			map_product_images(shopify_product=product, erpnext_item=template_item)
 			map_product_metafields(shopify_product=product, erpnext_item=template_item)
 
-			# if not item.variant_of:
 			update_default_variant_properties(
-				product, is_stock_item=template_item.is_stock_item,
+				product, sku=template_item.item_code, is_stock_item=template_item.is_stock_item,
 				price=item.get(ITEM_SELLING_RATE_FIELD), compare_at=item.get(ITEM_COMPARE_PRICE_FIELD)
 			)
-			# else:
-			# 	variant_attributes = {"sku": item.item_code, "price": item.get(ITEM_SELLING_RATE_FIELD)}
-			# 	product.options = []
-			# 	max_index_range = min(3, len(template_item.attributes))
-			# 	for i in range(0, max_index_range):
-			# 		attr = template_item.attributes[i]
-			# 		product.options.append(
-			# 			{
-			# 				"name": attr.attribute,
-			# 				"values": frappe.db.get_all(
-			# 					"Item Attribute Value", {"parent": attr.attribute}, pluck="attribute_value"
-			# 				),
-			# 			}
-			# 		)
-			# 		try:
-			# 			variant_attributes[f"option{i+1}"] = item.attributes[i].attribute_value
-			# 		except IndexError:
-			# 			frappe.throw(_("Shopify Error: Missing value for attribute {}").format(attr.attribute))
-			# 	product.variants.append(Variant(variant_attributes))
 
 			is_successful = product.save()
-			# if is_successful and item.variant_of:
-			# 	map_erpnext_variant_to_shopify_variant(product, item, variant_attributes)
 
 			write_upload_log(status=is_successful, product=product, item=item, action="Updated")
 
