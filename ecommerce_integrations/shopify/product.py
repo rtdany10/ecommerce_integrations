@@ -183,7 +183,6 @@ class ShopifyProduct:
 			]:
 				item_dict.pop(d, None)
 			item_doc.update(item_dict)
-			item_doc.set("existing_shopify_id", "")
 			if self.shopify_product:
 				get_product_meta_fields(self.shopify_product, item_doc)
 			item_doc.save()
@@ -695,16 +694,15 @@ def write_upload_log(status: bool, product: Product, item, action="Created") -> 
 		)
 
 
-def map_to_existing_item(doc, method=None):
+@frappe.whitelist()
+def map_to_existing_item(product_id):
 	"""Using shopify order, sync all items that are not already synced."""
-	product_id = doc.get("existing_shopify_id")
 	if not product_id:
 		return
 
 	product = ShopifyProduct(product_id)
 	if product.is_synced():
 		frappe.msgprint(f"Shopify product {product_id} is already synced to item {product.get_erpnext_item()} and cannot be mapped again.")
-		doc.db_set("existing_shopify_id", "")
 		return
 
 	product.sync_product()
