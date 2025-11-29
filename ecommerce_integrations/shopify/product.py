@@ -656,3 +656,17 @@ def map_to_existing_item(product_id):
 
 	product = ShopifyProduct(product_id)
 	product.sync_product(force=True)
+
+
+def sync_shopify_product_to_new_item(doc, method=None):
+	"""Sync shopify product using product_id."""
+	if doc.get("shopify_sync"):
+		return
+
+	product_id = doc.get("existing_shopify_id")
+	if not product_id:
+		return
+
+	product = ShopifyProduct(product_id)
+	if not product.is_synced():
+		product.sync_product(force=True)

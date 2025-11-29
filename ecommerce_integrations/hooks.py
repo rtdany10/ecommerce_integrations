@@ -110,6 +110,7 @@ doc_events = {
 	"Item": {
 		"after_insert": "ecommerce_integrations.shopify.product.upload_erpnext_item",
 		"on_update": [
+			"ecommerce_integrations.shopify.product.sync_shopify_product_to_new_item",
 			"ecommerce_integrations.shopify.product.upload_erpnext_item",
 		],
 		"validate": [
