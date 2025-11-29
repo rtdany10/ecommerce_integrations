@@ -374,9 +374,6 @@ def upload_erpnext_item(doc, method=None):
 	if not item.get("shopify_sync"):
 		return
 
-	if item.get("existing_shopify_id"):
-		return
-
 	setting = frappe.get_doc(SETTING_DOCTYPE)
 
 	if not setting.is_enabled() or not setting.upload_erpnext_items:
