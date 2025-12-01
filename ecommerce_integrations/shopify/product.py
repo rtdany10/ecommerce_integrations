@@ -140,6 +140,7 @@ class ShopifyProduct:
 			"weight_per_unit": product_dict.get("weight"),
 			"default_supplier": self._get_supplier(product_dict),
 			"shopify_images": [],
+			"shopify_handle": product_dict.get("handle"),
 			ITEM_PUBLISHED_FIELD: 1 if product_dict.get("published_at") else 0,
 			ITEM_STATUS_FIELD: product_dict.get("status").title(),
 		}
@@ -413,7 +414,8 @@ def upload_erpnext_item(doc, method=None):
 	if is_new_product:
 		product = Product()
 		product.published = (cint(template_item.get(ITEM_PUBLISHED_FIELD, 0)) == 1)
-		product.status = (template_item.get(ITEM_STATUS_FIELD)).lower()
+		product.status = str(template_item.get(ITEM_STATUS_FIELD)).lower()
+		product.handle = template_item.get("shopify_handle")
 
 		map_erpnext_item_to_shopify(shopify_product=product, erpnext_item=template_item)
 		is_successful = product.save()
@@ -456,7 +458,8 @@ def upload_erpnext_item(doc, method=None):
 		product = Product.find(product_id)
 		if product:
 			product.published = (cint(template_item.get(ITEM_PUBLISHED_FIELD, 0)) == 1)
-			product.status = (template_item.get(ITEM_STATUS_FIELD)).lower()
+			product.status = str(template_item.get(ITEM_STATUS_FIELD)).lower()
+			product.handle = template_item.get("shopify_handle")
 
 			map_erpnext_item_to_shopify(shopify_product=product, erpnext_item=template_item)
 			map_product_images(shopify_product=product, erpnext_item=template_item)
