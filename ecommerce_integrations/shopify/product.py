@@ -393,9 +393,9 @@ def upload_erpnext_item(doc, method=None):
 	if item.has_variants:
 		return
 
-	if len(item.attributes) > 3:
-		msgprint(_("Template items/Items with 4 or more attributes can not be uploaded to Shopify."))
-		return
+	# if len(item.attributes) > 3:
+	# 	msgprint(_("Template items/Items with 4 or more attributes can not be uploaded to Shopify."))
+	# 	return
 
 	# if doc.variant_of and not setting.upload_variants_as_items:
 	# 	msgprint(_("Enable variant sync in setting to upload item to Shopify."))
