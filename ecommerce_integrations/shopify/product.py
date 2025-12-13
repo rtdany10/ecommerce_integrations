@@ -436,6 +436,8 @@ def upload_erpnext_item(doc, method=None):
 			map_product_metafields(shopify_product=product, erpnext_item=template_item)
 
 			product.save()
+			if template_item.get("shopify_handle") != product.handle:
+				template_item.db_set("shopify_handle", product.handle)
 
 			ecom_items = list(set([item, template_item]))
 			for d in ecom_items:
@@ -471,6 +473,8 @@ def upload_erpnext_item(doc, method=None):
 			)
 
 			is_successful = product.save()
+			if template_item.get("shopify_handle") != product.handle:
+				template_item.db_set("shopify_handle", product.handle)
 
 			write_upload_log(status=is_successful, product=product, item=item, action="Updated")
 
