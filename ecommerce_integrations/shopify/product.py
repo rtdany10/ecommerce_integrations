@@ -484,6 +484,14 @@ def get_product_meta_fields(shopify_product: Product, erpnext_item):
 	erpnext_item.set(ITEM_META_FIELD, [])
 	for metafield in metafields:
 		data = metafield.to_dict()
+		if not frappe.db.get_value("Shopify Metafield", data.get("key")):
+			frappe.get_doc({
+				"doctype": "Shopify Metafield",
+				"metafield": data.get("key"),
+				"namespace": data.get("namespace"),
+				"value_type": data.get("type"),
+			}).insert(ignore_permissions=True)
+
 		erpnext_item.append(
 			ITEM_META_FIELD,
 			{
