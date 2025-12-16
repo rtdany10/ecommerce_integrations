@@ -474,6 +474,7 @@ def upload_erpnext_item(doc, method=None):
 			)
 
 			is_successful = product.save()
+			template_item.db_set("existing_shopify_id", product.id)
 			if template_item.get("shopify_handle") != product.handle:
 				template_item.db_set("shopify_handle", product.handle)
 
