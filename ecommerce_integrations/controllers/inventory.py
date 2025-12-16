@@ -3,7 +3,7 @@ from typing import List, Tuple
 import frappe
 from frappe import _dict
 from frappe.utils import now
-from frappe.utils.nestedset import get_descendants_of
+from furnishka.api.items import get_descendants_of
 
 
 def get_inventory_levels(warehouses: Tuple[str], integration: str) -> List[_dict]:
@@ -16,6 +16,14 @@ def get_inventory_levels(warehouses: Tuple[str], integration: str) -> List[_dict
 
 	returns: list of _dict containing ecom_item, item_code, integration_item_code, variant_id, actual_qty, warehouse, reserved_qty
 	"""
+
+	all_warehouses = ()
+	for wh in warehouses:
+		child_warehouse = get_descendants_of(
+			"Warehouse", wh, {"is_rejected_warehouse": 0, "is_delivery_zone": 0, "is_rescheduled_zone": 0}
+		)
+		all_warehouses += tuple(child_warehouse) + (wh,)
+
 	data = frappe.db.sql(
 		f"""
 			SELECT ei.name as ecom_item, bin.item_code as item_code, integration_item_code, variant_id, actual_qty, warehouse, reserved_qty
@@ -26,7 +34,7 @@ def get_inventory_levels(warehouses: Tuple[str], integration: str) -> List[_dict
 				AND bin.modified > ei.inventory_synced_on
 				AND ei.integration = %s
 		""",
-		values=warehouses + (integration,),
+		values=all_warehouses + (integration,),
 		as_dict=1,
 	)
 

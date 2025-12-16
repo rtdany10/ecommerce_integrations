@@ -39,6 +39,15 @@ def update_inventory_on_shopify() -> None:
 def upload_inventory_data_to_shopify(inventory_levels, warehous_map) -> None:
 	synced_on = now()
 
+	combined_inventory_levels = {}
+	for inventory in inventory_levels:
+		shopify_location = warehous_map.get(inventory.warehouse)
+		key = (inventory.ecom_item, shopify_location)
+		combined_inventory_levels.setdefault(key, inventory)
+		combined_inventory_levels[key].actual_qty += inventory.actual_qty
+		combined_inventory_levels[key].reserved_qty += inventory.reserved_qty
+
+	inventory_levels = combined_inventory_levels.values()
 	for inventory_sync_batch in create_batch(inventory_levels, 50):
 		for d in inventory_sync_batch:
 			d.shopify_location_id = warehous_map[d.warehouse]

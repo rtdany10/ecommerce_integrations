@@ -436,6 +436,7 @@ def upload_erpnext_item(doc, method=None):
 			map_product_metafields(shopify_product=product, erpnext_item=template_item)
 
 			product.save()
+			template_item.db_set("existing_shopify_id", product.id)
 			if template_item.get("shopify_handle") != product.handle:
 				template_item.db_set("shopify_handle", product.handle)
 
