@@ -67,7 +67,7 @@ def create_order(order, setting, company=None):
 	so = create_sales_order(order, setting, company)
 	if so:
 		if order.get("financial_status") == "paid":
-			make_payament_entry_against_sales_invoice(so, setting, order.transaction_date)
+			make_payament_entry_against_sales_invoice(so, setting, so.transaction_date)
 			create_sales_invoice(order, setting, so)
 
 		if order.get("fulfillments"):
