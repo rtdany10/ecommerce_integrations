@@ -118,7 +118,6 @@ def get_item_inventory_level(item_code: str, warehouses: Tuple[str], integration
 			WHERE 
 				bin.item_code = %s
 				AND bin.warehouse in ({', '.join('%s' for _ in all_warehouses)})
-				AND bin.modified > ei.inventory_synced_on
 				AND ei.integration = %s
 		""",
 		values=(item_code,) + all_warehouses + (integration,),

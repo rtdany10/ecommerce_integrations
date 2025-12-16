@@ -44,15 +44,17 @@ def update_single_item_inventory_on_shopify(item_code: str) -> None:
 	"""
 	setting = frappe.get_doc(SETTING_DOCTYPE)
 	if not setting.is_enabled() or not setting.update_erpnext_stock_levels_to_shopify:
-		return
+		frappe.throw("Shopify integration is disabled or stock update is not enabled.")
 
 	warehous_map = setting.get_erpnext_to_integration_wh_mapping()
 	inventory_levels = get_item_inventory_level(
 		item_code, tuple(warehous_map.keys()), MODULE_NAME
 	)
 
-	if inventory_levels:
-		upload_inventory_data_to_shopify(inventory_levels, warehous_map)
+	if not inventory_levels:
+		frappe.throw(f"No updated inventory found for Item {item_code}.")
+
+	upload_inventory_data_to_shopify(inventory_levels, warehous_map)
 
 
 @temp_shopify_session
@@ -61,17 +63,19 @@ def upload_inventory_data_to_shopify(inventory_levels, warehous_map) -> None:
 
 	combined_inventory_levels = {}
 	for inventory in inventory_levels:
-		shopify_location = warehous_map.get(inventory.warehouse)
+		belongs_to_wh = frappe.get_cached_value(
+			"Warehouse", inventory.warehouse, "belongs_to_wh"
+		)
+		shopify_location = warehous_map.get(belongs_to_wh)
 		key = (inventory.ecom_item, shopify_location)
 		combined_inventory_levels.setdefault(key, inventory)
+		combined_inventory_levels[key].shopify_location_id = shopify_location
 		combined_inventory_levels[key].actual_qty += inventory.actual_qty
 		combined_inventory_levels[key].reserved_qty += inventory.reserved_qty
 
-	inventory_levels = combined_inventory_levels.values()
+	inventory_levels = list(combined_inventory_levels.values())
 	for inventory_sync_batch in create_batch(inventory_levels, 50):
 		for d in inventory_sync_batch:
-			d.shopify_location_id = warehous_map[d.warehouse]
-
 			try:
 				variant = Variant.find(d.variant_id)
 				inventory_id = variant.inventory_item_id
