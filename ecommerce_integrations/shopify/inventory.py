@@ -7,6 +7,7 @@ from shopify.resources import InventoryLevel, Variant
 
 from ecommerce_integrations.controllers.inventory import (
 	get_inventory_levels,
+	get_item_inventory_level,
 	update_inventory_sync_status,
 )
 from ecommerce_integrations.controllers.scheduling import need_to_run
@@ -30,6 +31,25 @@ def update_inventory_on_shopify() -> None:
 
 	warehous_map = setting.get_erpnext_to_integration_wh_mapping()
 	inventory_levels = get_inventory_levels(tuple(warehous_map.keys()), MODULE_NAME)
+
+	if inventory_levels:
+		upload_inventory_data_to_shopify(inventory_levels, warehous_map)
+
+
+@frappe.whitelist()
+def update_single_item_inventory_on_shopify(item_code: str) -> None:
+	"""Upload stock level of a single item from ERPNext to Shopify.
+
+	Called when item stock is updated.
+	"""
+	setting = frappe.get_doc(SETTING_DOCTYPE)
+	if not setting.is_enabled() or not setting.update_erpnext_stock_levels_to_shopify:
+		return
+
+	warehous_map = setting.get_erpnext_to_integration_wh_mapping()
+	inventory_levels = get_item_inventory_level(
+		item_code, tuple(warehous_map.keys()), MODULE_NAME
+	)
 
 	if inventory_levels:
 		upload_inventory_data_to_shopify(inventory_levels, warehous_map)

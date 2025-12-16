@@ -670,7 +670,6 @@ def write_upload_log(status: bool, product: Product, item, action="Created") -> 
 
 @frappe.whitelist()
 def map_to_existing_item(product_id):
-	"""Using shopify order, sync all items that are not already synced."""
 	if not product_id:
 		return
 

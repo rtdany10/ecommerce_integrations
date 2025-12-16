@@ -30,7 +30,7 @@ def get_inventory_levels(warehouses: Tuple[str], integration: str) -> List[_dict
 			FROM `tabEcommerce Item` ei
 				JOIN tabBin bin
 				ON ei.erpnext_item_code = bin.item_code
-			WHERE bin.warehouse in ({', '.join('%s' for _ in warehouses)})
+			WHERE bin.warehouse in ({', '.join('%s' for _ in all_warehouses)})
 				AND bin.modified > ei.inventory_synced_on
 				AND ei.integration = %s
 		""",
@@ -89,3 +89,40 @@ def update_inventory_sync_status(ecommerce_item, time=None):
 		time = now()
 
 	frappe.db.set_value("Ecommerce Item", ecommerce_item, "inventory_synced_on", time)
+
+
+def get_item_inventory_level(item_code: str, warehouses: Tuple[str], integration: str) -> List[_dict]:
+	"""
+	Get list of dict containing items for which the inventory needs to be updated on Integeration.
+
+	New inventory levels are identified by checking Bin modification timestamp,
+	so ensure that if you sync the inventory with integration, you have also
+	updated `inventory_synced_on` field in related Ecommerce Item.
+
+	returns: list of _dict containing ecom_item, item_code, integration_item_code, variant_id, actual_qty, warehouse, reserved_qty
+	"""
+
+	all_warehouses = ()
+	for wh in warehouses:
+		child_warehouse = get_descendants_of(
+			"Warehouse", wh, {"is_rejected_warehouse": 0, "is_delivery_zone": 0, "is_rescheduled_zone": 0}
+		)
+		all_warehouses += tuple(child_warehouse) + (wh,)
+
+	data = frappe.db.sql(
+		f"""
+			SELECT ei.name as ecom_item, bin.item_code as item_code, integration_item_code, variant_id, actual_qty, warehouse, reserved_qty
+			FROM `tabEcommerce Item` ei
+				JOIN tabBin bin
+				ON ei.erpnext_item_code = bin.item_code
+			WHERE 
+				bin.item_code = %s
+				AND bin.warehouse in ({', '.join('%s' for _ in all_warehouses)})
+				AND bin.modified > ei.inventory_synced_on
+				AND ei.integration = %s
+		""",
+		values=(item_code,) + all_warehouses + (integration,),
+		as_dict=1,
+	)
+
+	return data
