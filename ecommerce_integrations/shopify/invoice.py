@@ -51,7 +51,7 @@ def create_sales_invoice(shopify_order, setting, so):
 		set_cost_center(sales_invoice.items, setting.cost_center)
 		sales_invoice.insert(ignore_mandatory=True)
 		sales_invoice.submit()
-		if sales_invoice.grand_total > 0:
+		if sales_invoice.grand_total > 0 and sales_invoice.outstanding_amount > 0:
 			make_payament_entry_against_sales_invoice(sales_invoice, setting, posting_date)
 
 		if shopify_order.get("note"):
