@@ -120,7 +120,10 @@ doc_events = {
 	},
 	"Sales Order": {
 		"on_update_after_submit": "ecommerce_integrations.unicommerce.order.update_shipping_info",
-		"on_cancel": "ecommerce_integrations.unicommerce.status_updater.ignore_pick_list_on_sales_order_cancel",
+		"on_cancel": [
+            "ecommerce_integrations.unicommerce.status_updater.ignore_pick_list_on_sales_order_cancel",
+            "ecommerce_integrations.shopify.order.cancel_shopify_order_on_cancellation",
+		]
 	},
 	"Stock Entry": {
 		"validate": "ecommerce_integrations.unicommerce.grn.validate_stock_entry_for_grn",

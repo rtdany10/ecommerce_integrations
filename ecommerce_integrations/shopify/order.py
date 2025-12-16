@@ -427,3 +427,29 @@ def _fetch_old_orders(from_time, to_time):
 			# Using generator instead of fetching all at once is better for
 			# avoiding rate limits and reducing resource usage.
 			yield order.to_dict()
+
+
+def cancel_shopify_order_on_cancellation(doc, method=None):
+	"""Cancel shopify order when ERPNext sales order is cancelled."""
+	if not doc.get(ORDER_ID_FIELD):
+		return
+
+	_cancel_shopify_order_on_cancellation(doc)
+
+
+@temp_shopify_session
+def _cancel_shopify_order_on_cancellation(doc):
+	try:
+		order = Order.find(id=doc.get(ORDER_ID_FIELD))[0]
+		if order:
+			order.cancel()
+	except Exception as e:
+		create_shopify_log(
+			status="Error",
+			exception=f"Failed to cancel shopify order {doc.get(ORDER_ID_FIELD)}: {str(e)}",
+		)
+	else:
+		create_shopify_log(
+			status="Success",
+			message=f"Shopify order {doc.get(ORDER_ID_FIELD)} cancelled successfully.",
+		)
