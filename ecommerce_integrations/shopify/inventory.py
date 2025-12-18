@@ -48,48 +48,59 @@ def upload_inventory_data_to_shopify(inventory_levels, warehous_map) -> None:
 	synced_on = now()
 	default_location = list(warehous_map.keys())[0]
 	for inventory_sync_batch in create_batch(inventory_levels, 50):
-		for d in inventory_sync_batch:
-			d.shopify_location_id = warehous_map[default_location]
+		frappe.enqueue(
+			_scheduled_shopify_update,
+			queue='long',
+			inventory_sync_batch=inventory_sync_batch,
+			warehous_map=warehous_map,
+			default_location=default_location,
+			synced_on=synced_on
+		)
 
+
+def _scheduled_shopify_update(inventory_sync_batch, warehous_map, default_location, synced_on):
+	for d in inventory_sync_batch:
+		d.shopify_location_id = warehous_map[default_location]
+
+		try:
+			variant = None
 			try:
-				variant = None
-				try:
-					variant = Variant.find(d.variant_id)
-				except ResourceNotFound:
-					product = Product.find(d.integration_item_code)
-					for v in product.variants:
-						if v.sku != d.sku:
-							continue
-						variant = v
-						frappe.db.set_value(
-							"Ecommerce Item", d.ecom_item, "variant_id", variant.id
-						)
-						break
-				
-				if not variant:
-					raise ResourceNotFound
-
-				inventory_id = variant.inventory_item_id
-
-				InventoryLevel.set(
-					location_id=d.shopify_location_id,
-					inventory_item_id=inventory_id,
-					# shopify doesn't support fractional quantity
-					available=cint(d.actual_qty) - cint(d.reserved_qty),
-				)
-				update_inventory_sync_status(d.ecom_item, time=synced_on)
-				d.status = "Success"
+				variant = Variant.find(d.variant_id)
 			except ResourceNotFound:
-				# Variant or location is deleted, mark as last synced and ignore.
-				update_inventory_sync_status(d.ecom_item, time=synced_on)
-				d.status = "Not Found"
-			except Exception as e:
-				d.status = "Failed"
-				d.failure_reason = str(e)
+				product = Product.find(d.integration_item_code)
+				for v in product.variants:
+					if v.sku != d.sku:
+						continue
+					variant = v
+					frappe.db.set_value(
+						"Ecommerce Item", d.ecom_item, "variant_id", variant.id
+					)
+					break
+			
+			if not variant:
+				raise ResourceNotFound
 
-			frappe.db.commit()
+			inventory_id = variant.inventory_item_id
 
-		_log_inventory_update_status(inventory_sync_batch)
+			InventoryLevel.set(
+				location_id=d.shopify_location_id,
+				inventory_item_id=inventory_id,
+				# shopify doesn't support fractional quantity
+				available=cint(d.actual_qty) - cint(d.reserved_qty),
+			)
+			update_inventory_sync_status(d.ecom_item, time=synced_on)
+			d.status = "Success"
+		except ResourceNotFound:
+			# Variant or location is deleted, mark as last synced and ignore.
+			update_inventory_sync_status(d.ecom_item, time=synced_on)
+			d.status = "Not Found"
+		except Exception as e:
+			d.status = "Failed"
+			d.failure_reason = str(e)
+
+		frappe.db.commit()
+
+	_log_inventory_update_status(inventory_sync_batch)
 
 
 def _log_inventory_update_status(inventory_levels) -> None:
