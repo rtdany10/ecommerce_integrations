@@ -3,7 +3,7 @@ from collections import Counter
 import frappe
 from frappe.utils import cint, create_batch, now
 from pyactiveresource.connection import ResourceNotFound
-from shopify.resources import InventoryLevel, Variant
+from shopify.resources import InventoryLevel, Variant, Product
 
 from ecommerce_integrations.controllers.inventory import (
 	get_inventory_levels_of_group_warehouse,
@@ -52,7 +52,23 @@ def upload_inventory_data_to_shopify(inventory_levels, warehous_map) -> None:
 			d.shopify_location_id = warehous_map[default_location]
 
 			try:
-				variant = Variant.find(d.variant_id)
+				variant = None
+				try:
+					variant = Variant.find(d.variant_id)
+				except ResourceNotFound:
+					product = Product.find(d.integration_item_code)
+					for v in product.variants:
+						if v.sku != d.sku:
+							continue
+						variant = v
+						frappe.db.set_value(
+							"Ecommerce Item", d.ecom_item, "variant_id", variant.id
+						)
+						break
+				
+				if not variant:
+					raise ResourceNotFound
+
 				inventory_id = variant.inventory_item_id
 
 				InventoryLevel.set(

@@ -46,6 +46,7 @@ def get_inventory_levels_of_group_warehouse(warehouse: str, integration: str):
 		f"""
 			SELECT ei.name as ecom_item, bin.item_code as item_code,
 				integration_item_code,
+				ei.sku,
 				variant_id,
 				sum(actual_qty) as actual_qty,
 				sum(reserved_qty) as reserved_qty,
