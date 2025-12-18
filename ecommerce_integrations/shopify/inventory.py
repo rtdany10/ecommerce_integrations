@@ -57,8 +57,12 @@ def upload_inventory_data_to_shopify(inventory_levels, warehous_map) -> None:
 		)
 
 
-@temp_shopify_session
 def _scheduled_shopify_update(inventory_sync_batch, warehous_map, default_location, synced_on):
+	init_scheduled_shopify_update(inventory_sync_batch, warehous_map, default_location, synced_on)
+
+
+@temp_shopify_session
+def init_scheduled_shopify_update(inventory_sync_batch, warehous_map, default_location, synced_on):
 	for d in inventory_sync_batch:
 		d.shopify_location_id = warehous_map[default_location]
 
