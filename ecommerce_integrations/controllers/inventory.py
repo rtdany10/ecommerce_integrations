@@ -60,8 +60,8 @@ def get_inventory_levels_of_group_warehouse(warehouse: str, integration: str):
 				ei.erpnext_item_code
 			HAVING
 				last_updated > last_synced
-			LIMIT 3000
 			ORDER BY last_synced ASC
+			LIMIT 3000
 			""",
 		values=all_warehouses + (integration,),
 		as_dict=1,
