@@ -443,7 +443,7 @@ def _cancel_shopify_order_on_cancellation(doc):
 	try:
 		order = Order.find(id=doc.get(ORDER_ID_FIELD))[0]
 		if order:
-			order.cancel()
+			order.cancel(email=True)
 	except Exception as e:
 		create_shopify_log(
 			status="Error",
