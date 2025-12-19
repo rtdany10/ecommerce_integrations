@@ -46,7 +46,7 @@ def update_inventory_on_shopify() -> None:
 def upload_inventory_data_to_shopify(inventory_levels, warehous_map) -> None:
 	synced_on = now()
 	default_location = list(warehous_map.keys())[0]
-	inventory_batches = create_batch(inventory_levels, 50)
+	inventory_batches = list(create_batch(inventory_levels, 50))
 	if inventory_batches:
 		inventory_sync_batch = inventory_batches.pop(0)
 		frappe.enqueue(
