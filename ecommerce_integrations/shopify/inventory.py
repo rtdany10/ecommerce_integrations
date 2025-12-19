@@ -46,19 +46,33 @@ def update_inventory_on_shopify() -> None:
 def upload_inventory_data_to_shopify(inventory_levels, warehous_map) -> None:
 	synced_on = now()
 	default_location = list(warehous_map.keys())[0]
-	for inventory_sync_batch in create_batch(inventory_levels, 50):
+	inventory_batches = create_batch(inventory_levels, 50)
+	if inventory_batches:
+		inventory_sync_batch = inventory_batches.pop(0)
 		frappe.enqueue(
 			_scheduled_shopify_update,
 			queue='long',
 			inventory_sync_batch=inventory_sync_batch,
+			inventory_levels=inventory_batches,
 			warehous_map=warehous_map,
 			default_location=default_location,
 			synced_on=synced_on
 		)
 
 
-def _scheduled_shopify_update(inventory_sync_batch, warehous_map, default_location, synced_on):
+def _scheduled_shopify_update(inventory_sync_batch, inventory_levels, warehous_map, default_location, synced_on):
 	init_scheduled_shopify_update(inventory_sync_batch, warehous_map, default_location, synced_on)
+	if inventory_levels:
+		inventory_sync_batch = inventory_levels.pop(0)
+		frappe.enqueue(
+			_scheduled_shopify_update,
+			queue='long',
+			inventory_sync_batch=inventory_sync_batch,
+			inventory_levels=inventory_levels,
+			warehous_map=warehous_map,
+			default_location=default_location,
+			synced_on=synced_on
+		)
 
 
 @temp_shopify_session
