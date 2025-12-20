@@ -4,6 +4,9 @@ import frappe
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
 from frappe.utils import cint, cstr, getdate
 
+from shopify.resources import Order, Fulfillment
+from ecommerce_integrations.shopify.connection import temp_shopify_session
+
 from ecommerce_integrations.shopify.constants import (
 	FULLFILLMENT_ID_FIELD,
 	ORDER_ID_FIELD,
@@ -87,3 +90,34 @@ def get_fulfillment_items(dn_items, fulfillment_items, location_id=None):
 			)
 
 	return final_items
+
+
+@temp_shopify_session
+def fulfill_shopify_order(doc, method=None):
+	if not doc.get("update_stock"):
+		return
+
+	if not doc.shopify_order_id or not doc.set_warehouse:
+		return
+
+	if doc.is_return:
+		frappe.msgprint("Please mark order as returned manually on shopify")
+		return
+
+	try:
+		order = Order.find(doc.shopify_order_id)
+		wh_mapping = frappe.get_doc(SETTING_DOCTYPE).get_erpnext_to_integration_wh_mapping()
+		belongs_to_wh = frappe.get_cached_value(
+			"Warehouse", doc.set_warehouse, "belongs_to_wh"
+		)
+		fulfillment = Fulfillment(
+			{
+				"order_id": order.id,
+				"line_items": order.line_items,
+				"location_id": wh_mapping[belongs_to_wh],
+			}
+		)
+		fulfillment.notify_customer = True
+		fulfillment.save()
+	except Exception as e:
+		frappe.throw(str(e))
