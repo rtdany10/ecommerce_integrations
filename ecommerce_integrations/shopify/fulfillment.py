@@ -14,6 +14,7 @@ from ecommerce_integrations.shopify.constants import (
 	SETTING_DOCTYPE,
 )
 from ecommerce_integrations.shopify.order import get_sales_order
+from ecommerce_integrations.shopify.product import get_item_code
 from ecommerce_integrations.shopify.utils import create_shopify_log
 
 
@@ -110,10 +111,19 @@ def fulfill_shopify_order(doc, method=None):
 		belongs_to_wh = frappe.get_cached_value(
 			"Warehouse", doc.set_warehouse, "belongs_to_wh"
 		)
+
+		line_items = []
+		item_qty_mapping = {d.item_code: d.qty for d in doc.items}
+		for shopify_item in order.line_items:
+			item_code = get_item_code(shopify_item)
+			if qty := item_qty_mapping.get(item_code):
+				shopify_item.quantity = qty
+				line_items.append(shopify_item)
+
 		fulfillment = Fulfillment(
 			{
 				"order_id": order.id,
-				"line_items": order.line_items,
+				"line_items": line_items,
 				"location_id": wh_mapping[belongs_to_wh],
 			}
 		)
