@@ -1,5 +1,4 @@
 from collections import Counter
-import time
 
 import frappe
 from frappe.utils import cint, create_batch, now
@@ -118,7 +117,6 @@ def init_scheduled_shopify_update(inventory_sync_batch, warehous_map, default_lo
 			d.failure_reason = str(e)
 
 		frappe.db.commit()
-		time.sleep(1)
 
 	_log_inventory_update_status(inventory_sync_batch)
 
