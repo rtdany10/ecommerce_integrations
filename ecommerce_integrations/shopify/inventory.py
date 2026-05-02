@@ -123,10 +123,10 @@ def init_scheduled_shopify_update(inventory_sync_batch, warehous_map, default_lo
 
 def _log_inventory_update_status(inventory_levels) -> None:
 	"""Create log of inventory update."""
-	log_message = "variant_id,location_id,status,failure_reason\n"
+	log_message = "variant_id,location_id,stock,status,failure_reason\n"
 
 	log_message += "\n".join(
-		f"{d.variant_id},{d.shopify_location_id},{d.status},{d.failure_reason or ''}"
+		f"{d.variant_id},{d.shopify_location_id},{cint(d.actual_qty) - cint(d.reserved_qty)},{d.status},{d.failure_reason or ''}"
 		for d in inventory_levels
 	)
 
