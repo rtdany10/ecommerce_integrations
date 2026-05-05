@@ -1,4 +1,5 @@
 from collections import Counter
+import time
 
 import frappe
 from frappe.utils import cint, create_batch, now
@@ -56,7 +57,8 @@ def upload_inventory_data_to_shopify(inventory_levels, warehous_map) -> None:
 			inventory_levels=inventory_batches,
 			warehous_map=warehous_map,
 			default_location=default_location,
-			synced_on=synced_on
+			synced_on=synced_on,
+			job_id="FP_SHOPIFY_STOCK_SYNC"
 		)
 
 
@@ -71,7 +73,8 @@ def _scheduled_shopify_update(inventory_sync_batch, inventory_levels, warehous_m
 			inventory_levels=inventory_levels,
 			warehous_map=warehous_map,
 			default_location=default_location,
-			synced_on=synced_on
+			synced_on=synced_on,
+			job_id="FP_SHOPIFY_STOCK_SYNC"
 		)
 
 
@@ -117,6 +120,7 @@ def init_scheduled_shopify_update(inventory_sync_batch, warehous_map, default_lo
 			d.failure_reason = str(e)
 
 		frappe.db.commit()
+		time.sleep(0.6)
 
 	_log_inventory_update_status(inventory_sync_batch)
 
