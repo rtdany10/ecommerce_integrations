@@ -62,6 +62,7 @@ def get_inventory_levels_of_group_warehouse(warehouse: str, integration: str):
 			HAVING
 				last_updated > last_synced
 			ORDER BY last_synced ASC
+			LIMIT 3000
 			""",
 		values=all_warehouses + (integration,),
 		as_dict=1,
