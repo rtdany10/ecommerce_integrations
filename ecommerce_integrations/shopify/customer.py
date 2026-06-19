@@ -23,10 +23,17 @@ class ShopifyCustomer(EcommerceCustomer):
 
 		customer_name = cstr(customer.get("first_name")) + " " + cstr(customer.get("last_name"))
 		if len(customer_name.strip()) == 0:
-			customer_name = customer.get("email")
+			customer_name = customer.get("email") or self.customer_id
 
 		customer_group = self.setting.customer_group
-		super().sync_customer(customer_name, customer_group)
+
+		phone_no = _get_phone_no(customer)
+		existing_customer = _get_customer_by_phone(phone_no) if phone_no else None
+
+		if existing_customer:
+			frappe.db.set_value("Customer", existing_customer, CUSTOMER_ID_FIELD, self.customer_id)
+		else:
+			super().sync_customer(customer_name, customer_group)
 
 		billing_address = customer.get("billing_address", {}) or customer.get("default_address")
 		shipping_address = customer.get("shipping_address", {})
@@ -58,6 +65,9 @@ class ShopifyCustomer(EcommerceCustomer):
 		shipping_address = customer.get("shipping_address", {})
 
 		customer_name = cstr(customer.get("first_name")) + " " + cstr(customer.get("last_name"))
+		if len(customer_name.strip()) == 0:
+			customer_name = customer.get("email") or self.customer_id
+
 		email = customer.get("email")
 
 		if billing_address:
@@ -99,14 +109,32 @@ class ShopifyCustomer(EcommerceCustomer):
 		if shopify_customer.get("email"):
 			contact_fields["email_ids"] = [{"email_id": shopify_customer.get("email"), "is_primary": True}]
 
-		phone_no = shopify_customer.get("phone") or shopify_customer.get("default_address", {}).get(
-			"phone"
-		)
+		phone_no = _get_phone_no(shopify_customer)
 
 		if validate_phone_number(phone_no, throw=False):
 			contact_fields["phone_nos"] = [{"phone": phone_no, "is_primary_phone": True}]
 
 		super().create_customer_contact(contact_fields)
+
+
+def _get_phone_no(shopify_customer: Dict[str, Any]) -> Optional[str]:
+	return shopify_customer.get("phone") or shopify_customer.get("default_address", {}).get("phone")
+
+
+def _get_customer_by_phone(phone_no: str) -> Optional[str]:
+	"""Return name of an existing Customer linked to a Contact with the given phone number."""
+	if not validate_phone_number(phone_no, throw=False):
+		return None
+
+	contact_name = frappe.db.get_value("Contact Phone", {"phone": phone_no}, "parent")
+	if not contact_name:
+		return None
+
+	return frappe.db.get_value(
+		"Dynamic Link",
+		{"parent": contact_name, "parenttype": "Contact", "link_doctype": "Customer"},
+		"link_name",
+	)
 
 
 def _map_address_fields(shopify_address, customer_name, address_type, email):
