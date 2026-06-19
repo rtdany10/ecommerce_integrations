@@ -5,12 +5,14 @@ import frappe
 from frappe import _
 from frappe.utils import cint, cstr, flt, get_datetime, getdate, nowdate
 from shopify.collection import PaginatedIterator
-from shopify.resources import Order
+from shopify.resources import Metafield, Order
 
 from ecommerce_integrations.shopify.connection import temp_shopify_session
 from ecommerce_integrations.shopify.constants import (
 	CUSTOMER_ID_FIELD,
 	EVENT_MAPPER,
+	ORDER_DELIVERY_DATE_METAFIELD_KEY,
+	ORDER_DELIVERY_DATE_METAFIELD_NAMESPACE,
 	ORDER_ID_FIELD,
 	ORDER_ITEM_DISCOUNT_FIELD,
 	ORDER_NUMBER_FIELD,
@@ -428,6 +430,63 @@ def _fetch_old_orders(from_time, to_time):
 			# Using generator instead of fetching all at once is better for
 			# avoiding rate limits and reducing resource usage.
 			yield order.to_dict()
+
+
+def update_delivery_date_on_shopify(doc, method=None):
+	"""Push Sales Order delivery date to the linked shopify order as a custom metafield.
+
+	Runs on submit, and again on later edits to delivery_date since the field
+	stays editable (allow_on_submit) for warehouse delays etc.
+	"""
+	if not doc.get(ORDER_ID_FIELD):
+		return
+
+	if method == "on_update_after_submit" and not doc.has_value_changed("delivery_date"):
+		return
+
+	_update_delivery_date_on_shopify(doc)
+
+
+@temp_shopify_session
+def _update_delivery_date_on_shopify(doc):
+	try:
+		order = Order.find(doc.get(ORDER_ID_FIELD))
+		if not order:
+			return
+
+		existing_metafield = None
+		for metafield in order.metafields():
+			if (
+				metafield.namespace == ORDER_DELIVERY_DATE_METAFIELD_NAMESPACE
+				and metafield.key == ORDER_DELIVERY_DATE_METAFIELD_KEY
+			):
+				existing_metafield = metafield
+				break
+
+		if existing_metafield:
+			existing_metafield.value = cstr(doc.delivery_date)
+			existing_metafield.save()
+		else:
+			order.add_metafield(
+				Metafield(
+					{
+						"namespace": ORDER_DELIVERY_DATE_METAFIELD_NAMESPACE,
+						"key": ORDER_DELIVERY_DATE_METAFIELD_KEY,
+						"value": cstr(doc.delivery_date),
+						"type": "date",
+					}
+				)
+			)
+	except Exception as e:
+		create_shopify_log(
+			status="Error",
+			exception=f"Failed to update delivery date on shopify order {doc.get(ORDER_ID_FIELD)}: {str(e)}",
+		)
+	else:
+		create_shopify_log(
+			status="Success",
+			message=f"Delivery date updated on shopify order {doc.get(ORDER_ID_FIELD)}.",
+		)
 
 
 def cancel_shopify_order_on_cancellation(doc, method=None):

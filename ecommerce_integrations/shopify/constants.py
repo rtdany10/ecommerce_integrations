@@ -43,5 +43,8 @@ ITEM_META_FIELD = "shopify_metafields"
 ITEM_STATUS_FIELD = "shopify_status"
 ITEM_PUBLISHED_FIELD = "shopify_published"
 
+ORDER_DELIVERY_DATE_METAFIELD_NAMESPACE = "custom"
+ORDER_DELIVERY_DATE_METAFIELD_KEY = "expected_delivery_date"
+
 # ERPNext already defines the default UOMs from Shopify but names are different
 WEIGHT_TO_ERPNEXT_UOM_MAP = {"kg": "Kg", "g": "Gram", "oz": "Ounce", "lb": "Pound"}

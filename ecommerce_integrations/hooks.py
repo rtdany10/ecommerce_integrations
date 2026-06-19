@@ -119,7 +119,11 @@ doc_events = {
 		],
 	},
 	"Sales Order": {
-		"on_update_after_submit": "ecommerce_integrations.unicommerce.order.update_shipping_info",
+		"on_submit": "ecommerce_integrations.shopify.order.update_delivery_date_on_shopify",
+		"on_update_after_submit": [
+            "ecommerce_integrations.unicommerce.order.update_shipping_info",
+            "ecommerce_integrations.shopify.order.update_delivery_date_on_shopify",
+		],
 		"on_cancel": [
             "ecommerce_integrations.unicommerce.status_updater.ignore_pick_list_on_sales_order_cancel",
             "ecommerce_integrations.shopify.order.cancel_shopify_order_on_cancellation",
