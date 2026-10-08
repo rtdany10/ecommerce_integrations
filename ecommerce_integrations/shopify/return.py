@@ -19,7 +19,7 @@ from ecommerce_integrations.shopify.order import (
 	get_tax_account_head,
 )
 from ecommerce_integrations.shopify.product import get_item_code
-from ecommerce_integrations.shopify.utils import create_shopify_log
+from ecommerce_integrations.shopify.utils import create_shopify_log, get_bank_account_for_gateways
 
 
 def prepare_sales_return(payload, request_id=None):
@@ -57,7 +57,10 @@ def create_sales_return(return_data, setting, sales_invoice):
 
 		if return_data.get("transactions"):
 			make_payment_against_sales_return(
-				setting, return_inv, flt(sum([flt(d["amount"]) for d in return_data["transactions"]]))
+				setting,
+				return_inv,
+				flt(sum([flt(d["amount"]) for d in return_data["transactions"]])),
+				gateway_names=[d.get("gateway") for d in return_data["transactions"]],
 			)
 		else:
 			make_payment_against_sales_return(setting, return_inv, 0)
@@ -193,7 +196,7 @@ def get_return_items_and_taxes(shopify_order, setting):
 	return return_items, restocked_items, taxes
 
 
-def make_payment_against_sales_return(setting, doc, paid_amount):
+def make_payment_against_sales_return(setting, doc, paid_amount, gateway_names=None):
 	write_off_account = frappe.get_cached_value("Company", doc.company, "write_off_account")
 	if not paid_amount:
 		"""
@@ -232,7 +235,9 @@ def make_payment_against_sales_return(setting, doc, paid_amount):
 	from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
 
 	payment_entry = get_payment_entry(
-		"Sales Invoice", doc.return_against, bank_account=setting.cash_bank_account
+		"Sales Invoice",
+		doc.return_against,
+		bank_account=get_bank_account_for_gateways(setting, gateway_names),
 	)
 	payment_entry.paid_amount = paid_amount
 	payment_entry.set_gain_or_loss(

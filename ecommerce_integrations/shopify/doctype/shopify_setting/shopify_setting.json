@@ -21,6 +21,7 @@
   "company_dependent_settings_section",
   "company",
   "cash_bank_account",
+  "payment_gateway_accounts",
   "column_break_19",
   "cost_center",
   "inventory_settings_section",
@@ -173,6 +174,13 @@
    "label": "Cash/Bank Account",
    "mandatory_depends_on": "eval:doc.enable_shopify",
    "options": "Account"
+  },
+  {
+   "description": "Overrides the Cash/Bank Account above for payments received through a specific Shopify payment gateway",
+   "fieldname": "payment_gateway_accounts",
+   "fieldtype": "Table",
+   "label": "Payment Gateway Accounts",
+   "options": "Shopify Payment Gateway Account"
   },
   {
    "fieldname": "column_break_19",

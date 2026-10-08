@@ -4,6 +4,7 @@ from typing import List
 
 import frappe
 from frappe import _, _dict
+from frappe.utils import cstr
 
 from ecommerce_integrations.ecommerce_integrations.doctype.ecommerce_integration_log.ecommerce_integration_log import (
 	create_log,
@@ -101,3 +102,16 @@ def _create_ecommerce_items(items: List[_dict]) -> None:
 			}
 		)
 		ecommerce_item.save()
+
+
+def get_bank_account_for_gateways(setting, gateway_names) -> str:
+	"""Return the bank account mapped to the first matching payment gateway, else the default."""
+	mapping = {
+		cstr(row.gateway).strip().lower(): row.bank_account
+		for row in setting.get("payment_gateway_accounts") or []
+	}
+	for gateway in gateway_names or []:
+		account = mapping.get(cstr(gateway).strip().lower())
+		if account:
+			return account
+	return setting.cash_bank_account
